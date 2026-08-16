@@ -311,23 +311,12 @@ export default function Pricing() {
       <Layout>
         <Layout.Section>
           <BlockStack gap="500">
-            {actionData?.synced && (
-              <Banner title={`Plan synced! hasPaidPlan = ${actionData.hasPaidPlan}`} tone={actionData.hasPaidPlan ? "success" : "warning"}>
-                <p>{actionData.hasPaidPlan ? "✅ Your Pro features are now active on the live storefront. Refresh your theme to see them." : "⚠️ No active paid plan found. Please subscribe first."}</p>
-              </Banner>
-            )}
-
             {hasPaidPlan && (
               <Banner title={`Active Plan: ${activePlan || "Pro Unlocked"}`} tone="success">
                 <p>You have unlocked full unlimited access with Click-to-Shop liquid glass tags and all Pro features.</p>
                 <Box paddingBlockStart="200">
                   <InlineStack gap="300">
-                    <Button
-                      onClick={() => submit({ plan: "force_sync" }, { method: "post" })}
-                      variant="secondary"
-                    >
-                      🔄 Sync Pro Status to Storefront
-                    </Button>
+
                     {isLifetimeActive ? (
                       <Text as="p" tone="subdued" variant="bodySm">
                         🔒 Lifetime access is permanent and cannot be cancelled.
