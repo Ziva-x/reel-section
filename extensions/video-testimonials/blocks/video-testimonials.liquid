@@ -329,8 +329,6 @@
     { "type": "color", "id": "heading_color", "label": "Heading color", "default": "#f4f3ef" },
     { "type": "color", "id": "subheading_color", "label": "Subheading color", "default": "#a1a1aa" },
     { "type": "color", "id": "bg_color", "label": "Section background color", "default": "#000000" },
-    { "type": "range", "id": "padding_top", "label": "Top padding", "min": 0, "max": 100, "step": 4, "unit": "px", "default": 24 },
-    { "type": "range", "id": "padding_bottom", "label": "Bottom padding", "min": 0, "max": 100, "step": 4, "unit": "px", "default": 24 },
 
     { "type": "header", "content": "Card Styling & Content" },
     { "type": "color", "id": "card_bg", "label": "Card background color", "default": "#17171a" },
@@ -384,7 +382,11 @@
     { "type": "checkbox", "id": "enable_video_autoplay", "label": "Auto-play videos when visible", "default": true },
     { "type": "checkbox", "id": "enable_autoloop", "label": "Auto-loop carousel timer", "default": false },
     { "type": "range", "id": "autoloop_speed", "label": "Auto-loop timer speed", "min": 2, "max": 10, "step": 1, "unit": "s", "default": 4 },
-    { "type": "checkbox", "id": "enable_unmute", "label": "Allow unmute button", "default": true }
+    { "type": "checkbox", "id": "enable_unmute", "label": "Allow unmute button", "default": true },
+    
+    { "type": "header", "content": "Section Padding" },
+    { "type": "range", "id": "padding_top", "label": "Top padding", "min": 0, "max": 100, "step": 4, "unit": "px", "default": 24 },
+    { "type": "range", "id": "padding_bottom", "label": "Bottom padding", "min": 0, "max": 100, "step": 4, "unit": "px", "default": 24 }
   ]
 }
 {% endschema %}
