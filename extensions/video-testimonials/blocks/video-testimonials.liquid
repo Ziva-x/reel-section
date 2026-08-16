@@ -63,7 +63,7 @@
   assign block_id         = block.id | default: section.id | default: 'main'
 
   assign is_pro_active    = false
-  if is_paid_member
+  if is_paid_member or request.design_mode
     assign is_pro_active  = true
   endif
 
@@ -239,7 +239,7 @@
                     <img class="pvt2__poster" src="{{ poster }}" alt="{{ cust_name | escape }}" loading="lazy" decoding="async">
                   {%- endif -%}
 
-                  {%- if block.settings.enable_verified_badge != false and is_verified -%}
+                  {%- if is_pro_active and block.settings.enable_verified_badge != false and is_verified -%}
                     <span class="pvt2__badge" aria-label="{{ badge_label | escape }}">
                       <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2l2.4 1.9 3-.6 1.1 2.9 2.9 1.1-.6 3L22 12l-1.6 2.7.6 3-2.9 1.1-1.1 2.9-3-.6L12 23l-2.4-1.9-3 .6-1.1-2.9-2.9-1.1.6-3L1.5 12l1.7-2.7-.6-3 2.9-1.1L6.6 2.3l3 .6L12 2z" fill="var(--pvt-badge-color, #FFFFFF)"/><path d="M8.5 12l2.4 2.4 4.6-4.8" stroke="var(--pvt-badge-bg, #0C0C0E)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
                       {{ badge_label }}
