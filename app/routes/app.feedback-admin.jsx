@@ -16,6 +16,7 @@ import {
   Box,
   Banner,
   Divider,
+  Tabs,
 } from "@shopify/polaris";
 import prisma from "../db.server";
 import { authenticate } from "../shopify.server";
@@ -50,10 +51,43 @@ export default function FeedbackAdmin() {
   const nav = useNavigation();
   const submit = useSubmit();
   const [passcode, setPasscode] = useState("");
+  const [selectedTab, setSelectedTab] = useState(0);
 
   const isSubmitting = nav.state === "submitting";
   const isAuthenticated = actionData?.success === true;
   const feedbackList = actionData?.feedback || [];
+
+  const complaints = feedbackList.filter(f => f.type === "bug");
+  const featureRequests = feedbackList.filter(f => f.type === "feature");
+  const generalFeedback = feedbackList.filter(f => f.type === "feedback");
+
+  let displayedList = feedbackList;
+  if (selectedTab === 1) displayedList = complaints;
+  if (selectedTab === 2) displayedList = featureRequests;
+  if (selectedTab === 3) displayedList = generalFeedback;
+
+  const tabs = [
+    {
+      id: "all-submissions",
+      content: `All Submissions (${feedbackList.length})`,
+      panelID: "all-submissions-content",
+    },
+    {
+      id: "complaints",
+      content: `🐛 Complaints & Bugs (${complaints.length})`,
+      panelID: "complaints-content",
+    },
+    {
+      id: "features",
+      content: `💡 Feature Requests (${featureRequests.length})`,
+      panelID: "features-content",
+    },
+    {
+      id: "general",
+      content: `⭐ General Feedback (${generalFeedback.length})`,
+      panelID: "general-content",
+    },
+  ];
 
   const handleUnlock = () => {
     if (!passcode) return;
@@ -62,8 +96,8 @@ export default function FeedbackAdmin() {
 
   return (
     <Page
-      title="👨‍💻 Developer Dashboard"
-      subtitle="Private portal for MonkeyGarage engineering"
+      title="👨‍💻 Developer Support & Complaints Hub"
+      subtitle="Private master portal for MonkeyGarage engineering"
       backAction={{ content: "Settings", onAction: () => navigate("/app/settings") }}
     >
       <Layout>
@@ -76,7 +110,7 @@ export default function FeedbackAdmin() {
                   <Badge tone="attention">Admin Only</Badge>
                 </InlineStack>
                 <Text as="p" tone="subdued">
-                  Enter your master developer passcode to view merchant feedback, bug reports, and suggestions.
+                  Enter your master developer passcode to view merchant feedback, bug reports, and customer complaints.
                 </Text>
 
                 {actionData?.error && (
@@ -88,7 +122,7 @@ export default function FeedbackAdmin() {
                 <InlineStack gap="300" blockAlign="end">
                   <div style={{ flex: 1 }}>
                     <TextField
-                      label="Developer Passcode"
+                      label="Developer Master Passcode"
                       value={passcode}
                       onChange={setPasscode}
                       type="password"
@@ -112,37 +146,39 @@ export default function FeedbackAdmin() {
               <Box padding="400">
                 <InlineStack align="space-between" blockAlign="center">
                   <div>
-                    <Text variant="headingMd" as="h2">Merchant Feedback & Reports</Text>
-                    <Text variant="bodySm" tone="subdued">Total Entries: {feedbackList.length}</Text>
+                    <Text variant="headingMd" as="h2">Merchant Submissions & Complaints</Text>
+                    <Text variant="bodySm" tone="subdued">Live SQLite Database Stream</Text>
                   </div>
-                  <Button onClick={handleUnlock} loading={isSubmitting}>Refresh Data</Button>
+                  <Button onClick={handleUnlock} loading={isSubmitting}>🔄 Refresh Data</Button>
                 </InlineStack>
               </Box>
+
+              <Tabs tabs={tabs} selected={selectedTab} onSelect={setSelectedTab} fitted />
               <Divider />
 
-              {feedbackList.length === 0 ? (
+              {displayedList.length === 0 ? (
                 <Box padding="400">
                   <EmptyState
-                    heading="No submissions recorded yet"
+                    heading="No entries in this category"
                     image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
                   >
-                    <p>Submissions from the Settings feedback form will appear here in real time.</p>
+                    <p>New customer complaints and feedback from the Settings form will appear here automatically.</p>
                   </EmptyState>
                 </Box>
               ) : (
                 <IndexTable
                   resourceName={{ singular: "submission", plural: "submissions" }}
-                  itemCount={feedbackList.length}
+                  itemCount={displayedList.length}
                   headings={[
-                    { title: "Store & Email" },
-                    { title: "Category" },
+                    { title: "Store & Contact Email" },
+                    { title: "Type / Category" },
                     { title: "Rating" },
-                    { title: "Message" },
-                    { title: "Date" },
+                    { title: "Message / Complaint Details" },
+                    { title: "Date Submitted" },
                   ]}
                   selectable={false}
                 >
-                  {feedbackList.map(({ id, shop, email, rating, type, message, createdAt }, index) => {
+                  {displayedList.map(({ id, shop, email, rating, type, message, createdAt }, index) => {
                     let typeBadge;
                     if (type === "bug") {
                       typeBadge = <Badge tone="critical">🐛 Bug / Complaint</Badge>;
@@ -163,7 +199,7 @@ export default function FeedbackAdmin() {
                           <Text fontWeight="semibold">{rating} / 5 ⭐</Text>
                         </IndexTable.Cell>
                         <IndexTable.Cell>
-                          <div style={{ whiteSpace: "normal", minWidth: "220px", maxWidth: "400px", lineHeight: "1.4" }}>
+                          <div style={{ whiteSpace: "normal", minWidth: "240px", maxWidth: "420px", lineHeight: "1.4" }}>
                             {message}
                           </div>
                         </IndexTable.Cell>

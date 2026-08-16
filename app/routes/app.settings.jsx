@@ -92,6 +92,8 @@ export default function Settings() {
   const [feedbackText, setFeedbackText] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [showUninstallInfo, setShowUninstallInfo] = useState(false);
+  const [secretUnlocked, setSecretUnlocked] = useState(false);
+  const [tapCount, setTapCount] = useState(0);
 
   const cleanStoreName = shop.replace(".myshopify.com", "");
   const appsSettingsUrl = `https://admin.shopify.com/store/${cleanStoreName}/settings/apps`;
@@ -136,11 +138,11 @@ export default function Settings() {
             <Card>
               <BlockStack gap="400">
                 <InlineStack align="space-between" blockAlign="center">
-                  <Text variant="headingMd" as="h3">⭐ Feedback & App Rating</Text>
-                  <Badge tone="info">Help Us Improve</Badge>
+                  <Text variant="headingMd" as="h3">⭐ Feedback, Suggestions & Complaints</Text>
+                  <Badge tone="info">Help & Support</Badge>
                 </InlineStack>
                 <Text variant="bodyMd" tone="subdued">
-                  We'd love to know how Reel Section is working for your store. Share feature requests, suggestions, or feedback directly with our engineering team.
+                  Have a suggestion, question, or encountering an issue? Send your complaint or feature request directly to our engineering team.
                 </Text>
 
                 <BlockStack gap="200">
@@ -183,11 +185,11 @@ export default function Settings() {
                 />
 
                 <TextField
-                  label="Your feedback, suggestions, or feature requests:"
+                  label={feedbackType === "bug" ? "Describe the issue / complaint in detail:" : "Your feedback, suggestions, or feature requests:"}
                   value={feedbackText}
                   onChange={setFeedbackText}
                   multiline={4}
-                  placeholder="Tell us what you love, or what features you'd like to see next..."
+                  placeholder={feedbackType === "bug" ? "Please tell us what went wrong, what steps caused it, or what store behavior is unexpected..." : "Tell us what you love, or what features you'd like to see next..."}
                   autoComplete="off"
                 />
 
@@ -212,10 +214,23 @@ export default function Settings() {
               </BlockStack>
             </Card>
 
-            {/* Developer Details Card (Placed below Feedback) */}
+            {/* Developer Details Card */}
             <Card>
               <BlockStack gap="300">
-                <Text variant="headingMd" as="h3">👨‍💻 Developer Details</Text>
+                <div
+                  onClick={() => {
+                    const next = tapCount + 1;
+                    setTapCount(next);
+                    if (next >= 3) {
+                      setSecretUnlocked(true);
+                      navigate("/app/feedback-admin");
+                    }
+                  }}
+                  style={{ cursor: "pointer", userSelect: "none" }}
+                  title="Developer Details"
+                >
+                  <Text variant="headingMd" as="h3">👨‍💻 Developer Details</Text>
+                </div>
                 <Divider />
                 <BlockStack gap="200">
                   <InlineStack align="space-between">
@@ -238,15 +253,19 @@ export default function Settings() {
                     <Text variant="bodySm" tone="subdued">System Status:</Text>
                     <Badge tone="success">Operational</Badge>
                   </InlineStack>
-                  <Divider />
-                  <InlineStack align="end">
-                    <Button
-                      variant="plain"
-                      onClick={() => navigate("/app/feedback-admin")}
-                    >
-                      🔒 View Merchant Submissions
-                    </Button>
-                  </InlineStack>
+                  {secretUnlocked && (
+                    <>
+                      <Divider />
+                      <InlineStack align="end">
+                        <Button
+                          variant="primary"
+                          onClick={() => navigate("/app/feedback-admin")}
+                        >
+                          🔒 Open Developer Portal
+                        </Button>
+                      </InlineStack>
+                    </>
+                  )}
                 </BlockStack>
               </BlockStack>
             </Card>
