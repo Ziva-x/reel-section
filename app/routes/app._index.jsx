@@ -95,7 +95,7 @@ export const loader = async ({ request }) => {
 };
 
 export const action = async ({ request }) => {
-  const { admin, session } = await authenticate.admin(request);
+  const { admin, session, billing } = await authenticate.admin(request);
   const formData = await request.formData();
   const actionType = formData.get("action");
   const idsStr = formData.get("ids");
@@ -141,7 +141,6 @@ export const action = async ({ request }) => {
 
   let hasPaidPlan = false;
   try {
-    const { billing } = await authenticate.admin(request);
     const billingCheck = await billing.check({
       plans: [LIFETIME_PLAN, MONTHLY_PLAN],
       isTest: true,

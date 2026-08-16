@@ -76,6 +76,23 @@ export const action = async ({ request }) => {
   const formData = await request.formData();
   const plan = formData.get("plan");
 
+  // Force re-sync billing status to Shopify metafields
+  if (plan === "force_sync") {
+    let hasPaidPlan = false;
+    try {
+      const billingCheck = await billing.check({
+        plans: [LIFETIME_PLAN, MONTHLY_PLAN],
+        isTest: true,
+      });
+      hasPaidPlan = !!billingCheck.hasActivePayment;
+    } catch (e) {
+      hasPaidPlan = false;
+    }
+    const planName = hasPaidPlan ? "Monthly Pro" : "Free Starter";
+    await syncTestimonialsToMetafields(admin, session.shop, hasPaidPlan, planName);
+    return json({ synced: true, hasPaidPlan });
+  }
+
   if (plan === "cancel") {
     try {
       const billingCheck = await billing.check({
@@ -223,11 +240,25 @@ export default function Pricing() {
       <Layout>
         <Layout.Section>
           <BlockStack gap="500">
+            {actionData?.synced && (
+              <Banner title={`Plan synced! hasPaidPlan = ${actionData.hasPaidPlan}`} tone={actionData.hasPaidPlan ? "success" : "warning"}>
+                <p>{actionData.hasPaidPlan ? "✅ Your Pro features are now active on the live storefront. Refresh your theme to see them." : "⚠️ No active paid plan found. Please subscribe first."}</p>
+              </Banner>
+            )}
+
             {hasPaidPlan && (
               <Banner title={`Active Plan: ${activePlan || "Pro Unlocked"}`} tone="success">
                 <p>You have unlocked full unlimited access with Click-to-Shop liquid glass tags and all Pro features.</p>
                 <Box paddingBlockStart="200">
-                  <Button tone="critical" onClick={handleCancel}>Switch back to Free Plan</Button>
+                  <InlineStack gap="300">
+                    <Button
+                      onClick={() => submit({ plan: "force_sync" }, { method: "post" })}
+                      variant="secondary"
+                    >
+                      🔄 Sync Pro Status to Storefront
+                    </Button>
+                    <Button tone="critical" onClick={handleCancel}>Switch back to Free Plan</Button>
+                  </InlineStack>
                 </Box>
               </Banner>
             )}
