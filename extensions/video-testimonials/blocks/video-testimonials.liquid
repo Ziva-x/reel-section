@@ -1,7 +1,15 @@
 {%- liquid
   assign plan_status      = shop.metafields.video_testimonials.plan_status.value
-  assign is_limit_reached = plan_status.isLimitReached | default: false
-  assign is_paid_member   = plan_status.hasPaidPlan | default: plan_status.hasLifetime | default: false
+  
+  assign is_limit_reached = false
+  if plan_status.isLimitReached == true or plan_status.isLimitReached == 'true'
+    assign is_limit_reached = true
+  endif
+
+  assign is_paid_member = false
+  if plan_status.hasPaidPlan == true or plan_status.hasPaidPlan == 'true' or plan_status.hasLifetime == true or plan_status.hasLifetime == 'true'
+    assign is_paid_member = true
+  endif
 
   assign global_settings  = shop.metafields.video_testimonials.settings.value
   assign testimonials_data = shop.metafields.video_testimonials.data.value
