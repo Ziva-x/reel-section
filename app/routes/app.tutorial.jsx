@@ -261,11 +261,6 @@ export default function SetupTour() {
     <Page
       title="Setup & Interactive Tour"
       subtitle="Follow your live progress checklist to launch high-converting video review reels."
-      primaryAction={{
-        content: navigation.state === "loading" ? "Checking..." : "🔄 Check Live Status",
-        onAction: () => revalidator.revalidate(),
-        loading: navigation.state === "loading",
-      }}
     >
       <Confetti active={showConfetti} />
 
@@ -301,13 +296,13 @@ export default function SetupTour() {
               {progressPercent === 100 && (
                 <Banner
                   tone="success"
-                  title="Congratulations! Free Plan Activated 🎉"
+                  title="Congratulations! Setup Complete 🎉"
                   action={{
-                    content: "View Plan Details",
+                    content: "View Quick Tips",
                     onAction: triggerCelebration,
                   }}
                 >
-                  <p>All setup steps are completed and your video testimonials are live on your storefront with 1,000 monthly free views!</p>
+                  <p>All setup steps are completed and your video testimonials are live on your storefront!</p>
                 </Banner>
               )}
             </BlockStack>
