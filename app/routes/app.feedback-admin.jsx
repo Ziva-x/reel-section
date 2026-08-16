@@ -34,6 +34,9 @@ export const loader = async ({ request }) => {
 
     return json({ isAuthenticated: true, feedback, error: null });
   } catch (error) {
+    if (error instanceof Response) {
+      throw error;
+    }
     console.error("Feedback Admin Loader Error:", error);
     // Return a 200 with error details so the page loads and shows the error instead of Shopify 500 screen
     return json({ isAuthenticated: false, feedback: [], error: error.message || String(error) });
