@@ -298,7 +298,7 @@ export default function Pricing() {
               You are on the <b>Free Starter Plan</b>!
             </Text>
             <Text as="p">
-              You get <b>500 free video views per month</b> to showcase your customer testimonials.
+              You get <b>1,000 free video views per month</b> to showcase your customer testimonials.
               Head to the <b>Testimonials</b> tab to add and manage your video reels.
             </Text>
             <Banner status="info" title="Pro Plans Available">
@@ -347,12 +347,12 @@ export default function Pricing() {
                         </BlockStack>
                         <Divider />
                         <List>
-                          <List.Item>✅ 500 video views per month</List.Item>
+                          <List.Item>✅ 1,000 video views per month</List.Item>
                           <List.Item>✅ Unlimited video uploads</List.Item>
                           <List.Item>✅ Simultaneous in-view autoplay</List.Item>
                           <List.Item>✅ HD auto-first-frame capture</List.Item>
                           <List.Item>✅ Carousel and Grid layouts</List.Item>
-                          <List.Item>⚠️ Pauses at 500 views until next month</List.Item>
+                          <List.Item>⚠️ Pauses at 1,000 views until next month</List.Item>
                         </List>
                       </BlockStack>
 
@@ -469,7 +469,7 @@ export default function Pricing() {
                 <Text variant="headingMd" as="h3">Billing & Views Policy</Text>
                 <Divider />
                 <Text as="p" tone="subdued">
-                  <strong>• Free Starter:</strong> Includes 500 video views every calendar month. If the limit is reached, reels pause cleanly until next month.
+                  <strong>• Free Starter:</strong> Includes 1,000 video views every calendar month. If the limit is reached, reels pause cleanly until next month.
                 </Text>
                 <Text as="p" tone="subdued">
                   <strong>• Monthly Pro ($2/mo):</strong> Unlocks unlimited video views and all Liquid Glass Pro features with flexible monthly billing.

@@ -259,7 +259,7 @@ export default function Analytics() {
                       Free Tier Remaining
                     </Text>
                     <Text variant="heading3xl" as="p" fontWeight="bold">
-                      {Math.max(0, 500 - thisMonthTotal).toLocaleString()}
+                      {Math.max(0, 1000 - thisMonthTotal).toLocaleString()}
                     </Text>
                     <Text variant="bodySm" as="p" tone="subdued">
                       Views left this month
