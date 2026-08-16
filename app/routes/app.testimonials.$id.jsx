@@ -66,7 +66,7 @@ export const action = async ({ request, params }) => {
     await prisma.testimonial.delete({
       where: { id: parseInt(id), shop },
     });
-    await syncTestimonialsToMetafields(admin, shop);
+    await syncTestimonialsToMetafields(admin, shop, false, null, true);
     return redirect("/app");
   }
 

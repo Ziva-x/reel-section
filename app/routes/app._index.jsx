@@ -22,10 +22,60 @@ import { LIFETIME_PLAN } from "../constants";
 
 export const loader = async ({ request }) => {
   const { session, admin, billing } = await authenticate.admin(request);
-  const testimonials = await prisma.testimonial.findMany({
+  let testimonials = await prisma.testimonial.findMany({
     where: { shop: session.shop },
     orderBy: { createdAt: "desc" },
   });
+
+  // RESTORE LOGIC: Since Render free tier wipes the SQLite DB on restarts, 
+  // we check if the DB is empty but Shopify Metafields still has data. 
+  // If so, we restore the data into SQLite.
+  if (testimonials.length === 0) {
+    try {
+      const response = await admin.graphql(`
+        query {
+          shop {
+            metafield(namespace: "video_testimonials", key: "data") { value }
+          }
+        }
+      `);
+      const responseJson = await response.json();
+      const metafieldValue = responseJson.data?.shop?.metafield?.value;
+      
+      if (metafieldValue) {
+        const parsedData = JSON.parse(metafieldValue);
+        if (Array.isArray(parsedData) && parsedData.length > 0) {
+          console.log(`[RESTORE] Restoring ${parsedData.length} testimonials from Shopify Metafields to SQLite...`);
+          for (const item of parsedData) {
+            await prisma.testimonial.create({
+              data: {
+                shop: session.shop,
+                videoUrl: item.videoUrl || item.video_url || "",
+                webmUrl: item.webmUrl || item.webm_url || "",
+                posterUrl: item.posterUrl || item.poster_url || "",
+                autoplay: item.autoplay !== false,
+                customerName: item.customerName || item.customer_name || "",
+                customerRole: item.customerRole || item.customer_role || "",
+                reviewText: item.reviewText || item.review_text || "",
+                rating: parseInt(item.rating || "5", 10),
+                verified: item.verified === true,
+                productHandle: item.productHandle || item.product_handle || "",
+                productTitle: item.productTitle || item.product_title || "",
+                productUrl: item.productUrl || item.product_url || "",
+              }
+            });
+          }
+          // Re-fetch restored data
+          testimonials = await prisma.testimonial.findMany({
+            where: { shop: session.shop },
+            orderBy: { createdAt: "desc" },
+          });
+        }
+      }
+    } catch (e) {
+      console.error("Failed to restore from metafields", e);
+    }
+  }
 
   let hasLifetime = false;
   try {
@@ -105,7 +155,7 @@ export const action = async ({ request }) => {
     }
   } catch (e) {}
 
-  await syncTestimonialsToMetafields(admin, session.shop, hasPaidPlan);
+  await syncTestimonialsToMetafields(admin, session.shop, hasPaidPlan, null, actionType === "delete");
 
   return json({ success: true });
 };

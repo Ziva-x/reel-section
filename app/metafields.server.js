@@ -1,6 +1,6 @@
 import prisma from "./db.server";
 
-export async function syncTestimonialsToMetafields(admin, shop, hasPaidPlan = false, planName = null) {
+export async function syncTestimonialsToMetafields(admin, shop, hasPaidPlan = false, planName = null, isDeletion = false) {
   try {
     const allTestimonials = await prisma.testimonial.findMany({
       where: { shop },
@@ -73,6 +73,28 @@ export async function syncTestimonialsToMetafields(admin, shop, hasPaidPlan = fa
       }
     }
 
+    const metafieldsToSet = [
+      {
+        ownerId: shopId,
+        namespace: "video_testimonials",
+        key: "plan_status",
+        type: "json",
+        value: JSON.stringify(planStatus),
+      }
+    ];
+
+    // CRITICAL: Protect against SQLite Ephemeral Wipes on Render.
+    // Never push an empty array to Shopify UNLESS the user explicitly deleted everything.
+    if (allTestimonials.length > 0 || isDeletion) {
+      metafieldsToSet.push({
+        ownerId: shopId,
+        namespace: "video_testimonials",
+        key: "data",
+        type: "json",
+        value: JSON.stringify(allTestimonials),
+      });
+    }
+
     // Set Metafields for data and plan status
     const syncResponse = await admin.graphql(
       `#graphql
@@ -84,22 +106,7 @@ export async function syncTestimonialsToMetafields(admin, shop, hasPaidPlan = fa
       }`,
       {
         variables: {
-          metafields: [
-            {
-              ownerId: shopId,
-              namespace: "video_testimonials",
-              key: "data",
-              type: "json",
-              value: JSON.stringify(allTestimonials),
-            },
-            {
-              ownerId: shopId,
-              namespace: "video_testimonials",
-              key: "plan_status",
-              type: "json",
-              value: JSON.stringify(planStatus),
-            },
-          ],
+          metafields: metafieldsToSet,
         },
       }
     );
