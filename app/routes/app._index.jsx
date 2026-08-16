@@ -18,7 +18,7 @@ import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { syncTestimonialsToMetafields } from "../metafields.server";
-import { LIFETIME_PLAN } from "../constants";
+import { LIFETIME_PLAN, MONTHLY_PLAN } from "../constants";
 
 export const loader = async ({ request }) => {
   const { session, admin, billing } = await authenticate.admin(request);
@@ -77,21 +77,21 @@ export const loader = async ({ request }) => {
     }
   }
 
-  let hasLifetime = false;
+  let hasPaidPlan = false;
   try {
     const billingCheck = await billing.check({
-      plans: [LIFETIME_PLAN],
+      plans: [LIFETIME_PLAN, MONTHLY_PLAN],
       isTest: true,
     });
-    hasLifetime = !!billingCheck.hasActivePayment;
+    hasPaidPlan = !!billingCheck.hasActivePayment;
   } catch (e) {
-    hasLifetime = false;
+    hasPaidPlan = false;
   }
 
   // Background sync testimonials to Shop Metafields so storefront is guaranteed in sync
-  syncTestimonialsToMetafields(admin, session.shop, hasLifetime).catch(() => {});
+  syncTestimonialsToMetafields(admin, session.shop, hasPaidPlan).catch(() => {});
 
-  return json({ testimonials, hasLifetime });
+  return json({ testimonials, hasLifetime: hasPaidPlan });
 };
 
 export const action = async ({ request }) => {
@@ -141,19 +141,15 @@ export const action = async ({ request }) => {
 
   let hasPaidPlan = false;
   try {
-    const shopRes = await admin.graphql(`
-      query {
-        shop {
-          metafield(namespace: "video_testimonials", key: "plan_status") { value }
-        }
-      }
-    `);
-    const shopJson = await shopRes.json();
-    const val = shopJson.data?.shop?.metafield?.value;
-    if (val) {
-      hasPaidPlan = JSON.parse(val).hasPaidPlan;
-    }
-  } catch (e) {}
+    const { billing } = await authenticate.admin(request);
+    const billingCheck = await billing.check({
+      plans: [LIFETIME_PLAN, MONTHLY_PLAN],
+      isTest: true,
+    });
+    hasPaidPlan = !!billingCheck.hasActivePayment;
+  } catch (e) {
+    hasPaidPlan = false;
+  }
 
   await syncTestimonialsToMetafields(admin, session.shop, hasPaidPlan, null, actionType === "delete");
 
