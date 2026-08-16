@@ -78,12 +78,18 @@ export const loader = async ({ request }) => {
   }
 
   let hasPaidPlan = false;
+  let activePlanName = null;
   try {
     const billingCheck = await billing.check({
       plans: [LIFETIME_PLAN, MONTHLY_PLAN],
       isTest: true,
     });
     hasPaidPlan = !!billingCheck.hasActivePayment;
+    activePlanName = billingCheck.appSubscriptions?.length > 0 
+      ? billingCheck.appSubscriptions[0].name 
+      : billingCheck.oneTimePurchases?.length > 0 
+      ? billingCheck.oneTimePurchases[0].name 
+      : null;
   } catch (e) {
     hasPaidPlan = false;
   }
@@ -91,7 +97,7 @@ export const loader = async ({ request }) => {
   // Background sync testimonials to Shop Metafields so storefront is guaranteed in sync
   syncTestimonialsToMetafields(admin, session.shop, hasPaidPlan).catch(() => {});
 
-  return json({ testimonials, hasLifetime: hasPaidPlan });
+  return json({ testimonials, hasPaidPlan, activePlanName });
 };
 
 export const action = async ({ request }) => {
@@ -185,7 +191,7 @@ export const action = async ({ request }) => {
 };
 
 export default function Index() {
-  const { testimonials, hasLifetime } = useLoaderData();
+  const { testimonials, hasPaidPlan, activePlanName } = useLoaderData();
   const navigate = useNavigate();
   const submit = useSubmit();
 
@@ -293,8 +299,8 @@ export default function Index() {
         </button>
       </TitleBar>
       <BlockStack gap="500">
-        {hasLifetime && (
-          <Banner tone="success" title="⭐ Lifetime Pro Active">
+        {hasPaidPlan && (
+          <Banner tone="success" title={`⭐ ${activePlanName || "Pro"} Active`}>
             <p>
               Your store has unlocked <strong>Unlimited Impressions</strong>, <strong>Click-to-Shop Liquid Glass Product Tags</strong>, and <strong>Full Customization</strong>.
             </p>
