@@ -359,10 +359,9 @@ export default function Settings() {
                           variant="primary"
                           fullWidth
                           onClick={() => {
-                            if (typeof window !== "undefined" && window.Tawk_API?.maximize) {
-                              window.Tawk_API.maximize();
-                            } else if (typeof window !== "undefined" && window.Tawk_API?.toggle) {
-                              window.Tawk_API.toggle();
+                            if (typeof window !== "undefined" && window.$crisp) {
+                              window.$crisp.push(["do", "chat:open"]);
+                              window.$crisp.push(["do", "chat:show"]);
                             }
                           }}
                         >

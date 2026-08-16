@@ -4,37 +4,35 @@ export default function LiveChatWidget({ shop = "" }) {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    window.Tawk_API = window.Tawk_API || {};
-    window.Tawk_LoadStart = new Date();
+    window.$crisp = window.$crisp || [];
+    window.CRISP_WEBSITE_ID = "db4b59b8-f965-4675-9a5d-9c2513f7a6f0";
 
-    // Set visitor attributes so you know which store is messaging you
+    // Attach store identification to Crisp session
     if (shop) {
-      window.Tawk_API.onLoad = function () {
-        if (window.Tawk_API && typeof window.Tawk_API.setAttributes === "function") {
-          window.Tawk_API.setAttributes(
-            {
-              Store: shop,
-              Name: shop.replace(".myshopify.com", ""),
-            },
-            function (error) {
-              if (error) console.error("Tawk attribute error:", error);
-            }
-          );
-        }
-      };
+      const cleanName = shop.replace(".myshopify.com", "");
+      window.$crisp.push(["set", "user:nickname", [cleanName]]);
+      window.$crisp.push([
+        "set",
+        "session:data",
+        [
+          [
+            ["store", shop],
+            ["shop_domain", shop],
+          ],
+        ],
+      ]);
     }
 
-    // Inject Tawk.to script only once
-    if (!document.getElementById("tawk-live-chat-script")) {
-      const s1 = document.createElement("script");
-      s1.id = "tawk-live-chat-script";
-      s1.async = true;
-      s1.src = "https://embed.tawk.to/6a8210b57f692a1d48ab8018/1k0612htm";
-      s1.charset = "UTF-8";
-      s1.setAttribute("crossorigin", "*");
-      document.head.appendChild(s1);
+    // Inject Crisp script only once
+    if (!document.getElementById("crisp-live-chat-script")) {
+      const d = document;
+      const s = d.createElement("script");
+      s.id = "crisp-live-chat-script";
+      s.src = "https://client.crisp.chat/l.js";
+      s.async = 1;
+      d.getElementsByTagName("head")[0].appendChild(s);
     }
   }, [shop]);
 
-  return null; // Tawk.to renders its own native floating chat widget
+  return null; // Crisp renders its own ultra-sleek floating chat widget
 }
