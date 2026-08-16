@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: reel-section
+    env: node
+    plan: free
+    buildCommand: npm install && npm run setup && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SHOPIFY_API_KEY
+        sync: false
+      - key: SHOPIFY_API_SECRET
+        sync: false
+      - key: SCOPES
+        value: write_metafields,read_metafields,write_metafield_definitions,read_metafield_definitions,read_products,read_themes
+      - key: SHOPIFY_APP_URL
+        sync: false

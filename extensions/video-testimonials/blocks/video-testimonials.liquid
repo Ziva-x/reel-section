@@ -1,0 +1,372 @@
+{%- liquid
+  assign plan_status      = shop.metafields.video_testimonials.plan_status.value
+  assign is_limit_reached = plan_status.isLimitReached | default: false
+  assign is_paid_member   = plan_status.hasPaidPlan | default: plan_status.hasLifetime | default: false
+
+  assign global_settings  = shop.metafields.video_testimonials.settings.value
+  assign testimonials_data = shop.metafields.video_testimonials.data.value
+
+  assign heading          = block.settings.heading | default: global_settings.heading | default: 'Customer Stories'
+  assign subheading       = block.settings.subheading | default: global_settings.subheading
+  assign heading_align    = block.settings.heading_align | default: 'center'
+  assign heading_size     = block.settings.heading_size | default: 28
+  assign heading_color    = block.settings.heading_color | default: global_settings.textColor | default: '#F4F3EF'
+  assign subheading_color = block.settings.subheading_color | default: '#A1A1AA'
+
+  assign bg_color         = block.settings.bg_color | default: global_settings.bgColor | default: 'transparent'
+  assign pt               = block.settings.padding_top | default: 24
+  assign pb               = block.settings.padding_bottom | default: 24
+
+  assign card_bg          = block.settings.card_bg | default: global_settings.cardColor | default: '#17171A'
+  assign card_border      = block.settings.card_border | default: 'rgba(201, 161, 90, 0.2)'
+  assign card_w           = block.settings.card_width | default: 280
+  assign card_h           = block.settings.card_height | default: 460
+  assign card_r           = block.settings.card_radius | default: 16
+  assign card_g           = block.settings.card_gap | default: 16
+
+  assign name_color       = block.settings.name_color | default: global_settings.accentColor | default: '#C9A15A'
+  assign name_size        = block.settings.name_size | default: 15
+  assign role_color       = block.settings.role_color | default: '#8E8E93'
+  assign role_size        = block.settings.role_size | default: 12
+  assign review_color     = block.settings.review_color | default: global_settings.textColor | default: '#F4F3EF'
+  assign review_size      = block.settings.review_size | default: 14
+  assign star_color       = block.settings.star_color | default: global_settings.accentColor | default: '#C9A15A'
+
+  assign badge_bg         = block.settings.badge_bg | default: 'rgba(12, 12, 14, 0.7)'
+  assign badge_color      = block.settings.badge_color | default: '#FFFFFF'
+  assign play_bg          = block.settings.play_bg | default: 'rgba(12, 12, 14, 0.65)'
+  assign play_color       = block.settings.play_color | default: '#FFFFFF'
+
+  assign arrow_color      = block.settings.arrow_color | default: '#F4F3EF'
+  assign arrow_bg         = block.settings.arrow_bg | default: 'rgba(255, 255, 255, 0.08)'
+  assign dot_color        = block.settings.dot_color | default: global_settings.accentColor | default: '#C9A15A'
+  assign glow_color       = block.settings.glow_color | default: '#05FFF7'
+
+  assign pill_btn_text    = block.settings.pill_btn_text | default: 'BUY'
+  assign pill_btn_bg      = block.settings.pill_btn_bg | default: '#05FFF7'
+  assign pill_btn_color   = block.settings.pill_btn_color | default: '#000000'
+  assign pill_price_color = block.settings.pill_price_color | default: '#05FFF7'
+  assign pill_border_color = block.settings.pill_border_color | default: '#05FFF7'
+
+  assign layout_mode      = block.settings.layout_mode | default: 'carousel'
+  assign cols             = block.settings.grid_columns | default: 3
+  assign max_stars        = 5
+  assign initial_vis      = 8
+  assign block_id         = block.id | default: section.id | default: 'main'
+
+  assign is_pro_active    = false
+  if is_paid_member or request.design_mode
+    assign is_pro_active  = true
+  endif
+
+  assign badge_label      = 'Verified'
+  if is_pro_active and block.settings.custom_badge_text != blank
+    assign badge_label    = block.settings.custom_badge_text
+  endif
+-%}
+
+{%- if is_limit_reached and request.design_mode == false -%}
+  {%- comment -%} Free tier monthly limit reached (1,000 views) - Section cleanly pauses on live storefront {%- endcomment -%}
+{%- else -%}
+
+<section
+  id="pvt2-{{ block_id }}"
+  class="pvt2 pvt2--{{ layout_mode }}{% if is_pro_active and block.settings.enable_glow_hover %} pvt2--glow{% endif %}"
+  data-section-id="{{ block_id }}"
+  data-shop="{{ shop.domain }}"
+  data-autoloop="{{ block.settings.enable_autoloop }}"
+  data-autoloop-speed="{{ block.settings.autoloop_speed | default: 4 }}"
+  data-video-loop="true"
+  data-video-auto-advance="false"
+  data-preload-mode="smart"
+  data-reset-on-leave="true"
+  style="
+    --pvt-card-w: {{ card_w }}px;
+    --pvt-media-h: {{ card_h }}px;
+    --pvt-radius: {{ card_r }}px;
+    --pvt-gap: {{ card_g }}px;
+    --pvt-bg: {{ bg_color }};
+    --pvt-pt: {{ pt }}px;
+    --pvt-pb: {{ pb }}px;
+    --pvt-heading-color: {{ heading_color }};
+    --pvt-heading-size: {{ heading_size }}px;
+    --pvt-heading-align: {{ heading_align }};
+    --pvt-subheading-color: {{ subheading_color }};
+    --pvt-card-bg: {{ card_bg }};
+    --pvt-card-border: {{ card_border }};
+    --pvt-grid-cols: {{ cols }};
+    --pvt-name-color: {{ name_color }};
+    --pvt-name-size: {{ name_size }}px;
+    --pvt-role-color: {{ role_color }};
+    --pvt-role-size: {{ role_size }}px;
+    --pvt-review-color: {{ review_color }};
+    --pvt-review-size: {{ review_size }}px;
+    --pvt-star-color: {{ star_color }};
+    --pvt-badge-bg: {{ badge_bg }};
+    --pvt-badge-color: {{ badge_color }};
+    --pvt-play-bg: {{ play_bg }};
+    --pvt-play-color: {{ play_color }};
+    --pvt-arrow-color: {{ arrow_color }};
+    --pvt-arrow-bg: {{ arrow_bg }};
+    --pvt-dot-color: {{ dot_color }};
+    --pvt-glow-color: {{ glow_color }};
+    --pvt-pill-btn-bg: {{ pill_btn_bg }};
+    --pvt-pill-btn-color: {{ pill_btn_color }};
+    --pvt-pill-price-color: {{ pill_price_color }};
+    --pvt-pill-border: {{ pill_border_color }};
+  "
+>
+  <div class="pvt2__inner">
+
+    {%- if heading != blank or subheading != blank -%}
+      <div class="pvt2__header" style="text-align: var(--pvt-heading-align);">
+        {%- if heading != blank -%}<h2 class="pvt2__heading" style="color: var(--pvt-heading-color); font-size: var(--pvt-heading-size);">{{ heading }}</h2>{%- endif -%}
+        {%- if subheading != blank -%}<p class="pvt2__subheading" style="color: var(--pvt-subheading-color);">{{ subheading }}</p>{%- endif -%}
+      </div>
+    {%- endif -%}
+
+    {%- assign visible_count = 0 -%}
+    {%- for item in testimonials_data -%}
+      {%- assign p_handle = item.productHandle | default: item.product_handle -%}
+      {%- if product != blank and p_handle != blank and p_handle != 'null' and p_handle != 'undefined' -%}
+        {%- if p_handle != product.handle -%}{%- continue -%}{%- endif -%}
+      {%- endif -%}
+      {%- assign visible_count = visible_count | plus: 1 -%}
+    {%- endfor -%}
+
+    {%- if visible_count > 0 -%}
+
+      <div class="pvt2__carousel-wrap">
+        {%- if block.settings.show_arrows and layout_mode == 'carousel' -%}
+          <button type="button" class="pvt2__arrow pvt2__arrow--prev" aria-label="Previous" disabled>
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        {%- endif -%}
+
+        <div class="pvt2__track" tabindex="0" role="region" aria-label="Video testimonials">
+          <ul class="pvt2__list" id="pvt2-list-{{ block_id }}">
+            {%- assign rendered_i = 0 -%}
+            {%- for item in testimonials_data -%}
+              {%- assign p_handle = item.productHandle | default: item.product_handle -%}
+              {%- if product != blank and p_handle != blank and p_handle != 'null' and p_handle != 'undefined' -%}
+                {%- if p_handle != product.handle -%}{%- continue -%}{%- endif -%}
+              {%- endif -%}
+
+              {%- assign rendered_i = rendered_i | plus: 1 -%}
+              {%- assign is_hidden = false -%}
+              {%- if rendered_i > initial_vis -%}{%- assign is_hidden = true -%}{%- endif -%}
+
+              {%- liquid
+                assign poster       = item.posterUrl | default: item.poster_url
+                if poster == 'null' or poster == 'undefined'
+                  assign poster = blank
+                endif
+
+                assign rating       = item.rating | default: 5
+                assign mp4_url      = item.videoUrl | default: item.video_url
+                if mp4_url == 'null' or mp4_url == 'undefined'
+                  assign mp4_url = blank
+                endif
+
+                assign webm_url     = item.webmUrl | default: item.webm_url
+                if webm_url == 'null' or webm_url == 'undefined'
+                  assign webm_url = blank
+                endif
+
+                assign cust_name    = item.customerName | default: item.customer_name
+                assign cust_role    = item.customerRole | default: item.customer_role
+                assign review_txt   = item.reviewText | default: item.review_text
+                assign is_verified  = item.verified
+                assign autoplay_val = item.autoplay | default: true
+                
+                assign has_video = false
+                if mp4_url != blank or webm_url != blank
+                  assign has_video = true
+                endif
+
+                assign tagged_prod = blank
+                if p_handle != blank and p_handle != 'null' and p_handle != 'undefined'
+                  assign tagged_prod = all_products[p_handle]
+                endif
+              -%}
+
+              <li class="pvt2__card{% if is_hidden %} pvt2__card--hidden{% endif %}" data-card-index="{{ rendered_i }}">
+                <div class="pvt2__media">
+                  {%- if has_video -%}
+                    <div class="pvt2__video-wrap{% unless block.settings.enable_unmute %} pvt2__video-wrap--no-unmute{% endunless %}" data-video-container data-autoplay="{{ autoplay_val }}">
+                      {%- if poster != blank -%}
+                        <img class="pvt2__poster" src="{{ poster }}" alt="{{ cust_name | escape }}" loading="lazy" decoding="async">
+                      {%- endif -%}
+                      <video class="pvt2__video" src="{{ mp4_url }}" muted playsinline loop preload="auto" {% if block.settings.enable_video_autoplay != false %}autoplay{% endif %} {% if poster != blank %}poster="{{ poster }}"{% endif %}></video>
+                      <button type="button" class="pvt2__play-btn" aria-label="Play video">
+                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7-11-7z"/></svg>
+                      </button>
+                      {%- if block.settings.enable_unmute -%}
+                        <button type="button" class="pvt2__sound-btn" data-sound-btn aria-label="Unmute video">
+                          <svg class="pvt2__sound-icon pvt2__sound-icon--off" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 9v6h4l5 5V4L8 9H4z" fill="currentColor"/><line x1="16" y1="9" x2="21" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="21" y1="9" x2="16" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                          <svg class="pvt2__sound-icon pvt2__sound-icon--on" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 9v6h4l5 5V4L8 9H4z" fill="currentColor"/><path d="M15.5 8.5a4.5 4.5 0 0 1 0 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M18 6a8 8 0 0 1 0 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                        </button>
+                      {%- endif -%}
+
+                      {%- comment -%} Pro Feature: Click-to-Shop Liquid Glass Product Tag (Preview in Editor, Active for Paid Members) {%- endcomment -%}
+                      {%- if is_pro_active and block.settings.enable_product_pill != false and tagged_prod != blank and tagged_prod.title != blank -%}
+                        <a href="{{ tagged_prod.url }}" class="pvt2__glass-pill" aria-label="Shop {{ tagged_prod.title | escape }}">
+                          {%- if tagged_prod.featured_image != blank -%}
+                            <img src="{{ tagged_prod.featured_image | image_url: width: 64, height: 64, crop: 'center' }}" alt="{{ tagged_prod.title | escape }}" class="pvt2__glass-img" loading="lazy" width="28" height="28">
+                          {%- endif -%}
+                          <div class="pvt2__glass-details">
+                            <span class="pvt2__glass-title">{{ tagged_prod.title | truncate: 15 }}</span>
+                            <span class="pvt2__glass-price">{{ tagged_prod.price | money }}</span>
+                          </div>
+                          <span class="pvt2__glass-btn">
+                            <span>{{ pill_btn_text }}</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                          </span>
+                        </a>
+                      {%- endif -%}
+
+                      <div class="pvt2__gradient" aria-hidden="true"></div>
+                    </div>
+                  {%- elsif poster != blank -%}
+                    <img class="pvt2__poster" src="{{ poster }}" alt="{{ cust_name | escape }}" loading="lazy" decoding="async">
+                  {%- endif -%}
+
+                  {%- if block.settings.enable_verified_badge != false and is_verified -%}
+                    <span class="pvt2__badge" aria-label="{{ badge_label | escape }}">
+                      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2l2.4 1.9 3-.6 1.1 2.9 2.9 1.1-.6 3L22 12l-1.6 2.7.6 3-2.9 1.1-1.1 2.9-3-.6L12 23l-2.4-1.9-3 .6-1.1-2.9-2.9-1.1.6-3L1.5 12l1.7-2.7-.6-3 2.9-1.1L6.6 2.3l3 .6L12 2z" fill="var(--pvt-badge-color, #FFFFFF)"/><path d="M8.5 12l2.4 2.4 4.6-4.8" stroke="var(--pvt-badge-bg, #0C0C0E)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      {{ badge_label }}
+                    </span>
+                  {%- endif -%}
+                </div>
+
+                <div class="pvt2__content">
+                  {%- if block.settings.show_stars and rating > 0 -%}
+                    <div class="pvt2__stars" aria-label="{{ rating }} out of {{ max_stars }} stars">
+                      {%- for i in (1..max_stars) -%}
+                        <svg class="pvt2__star{% if i <= rating %} is-filled{% endif %}" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 1.5l2.6 5.4 5.9.8-4.3 4.2 1 5.9L10 15.3l-5.2 2.8 1-5.9L1.5 7.7l5.9-.8L10 1.5z"/></svg>
+                      {%- endfor -%}
+                    </div>
+                  {%- endif -%}
+                  {%- if review_txt != blank -%}
+                    <p class="pvt2__review" data-clamped="true">{{ review_txt }}</p>
+                    <button class="pvt2__read-more" data-read-more aria-expanded="false">Read more</button>
+                  {%- endif -%}
+                  {%- if cust_name != blank -%}<p class="pvt2__name">{{ cust_name }}</p>{%- endif -%}
+                  {%- if cust_role != blank -%}<p class="pvt2__role">{{ cust_role }}</p>{%- endif -%}
+                </div>
+              </li>
+            {%- endfor -%}
+          </ul>
+        </div>
+
+        {%- if block.settings.show_arrows and layout_mode == 'carousel' -%}
+          <button type="button" class="pvt2__arrow pvt2__arrow--next" aria-label="Next">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        {%- endif -%}
+      </div>
+
+      {%- if block.settings.show_dots and layout_mode == 'carousel' and visible_count > 1 -%}
+        <div class="pvt2__dots" id="pvt2-dots-{{ block_id }}" role="tablist" aria-label="Testimonial navigation">
+          {%- assign dot_i = 0 -%}
+          {%- for item in testimonials_data -%}
+            {%- assign p_handle = item.productHandle | default: item.product_handle -%}
+            {%- if product != blank and p_handle != blank and p_handle != 'null' and p_handle != 'undefined' -%}
+              {%- if p_handle != product.handle -%}{%- continue -%}{%- endif -%}
+            {%- endif -%}
+            {%- assign dot_i = dot_i | plus: 1 -%}
+            {%- if dot_i > initial_vis -%}{%- continue -%}{%- endif -%}
+            <button class="pvt2__dot{% if dot_i == 1 %} is-active{% endif %}" data-dot="{{ dot_i }}" role="tab" aria-label="Testimonial {{ dot_i }}" aria-selected="{% if dot_i == 1 %}true{% else %}false{% endif %}"></button>
+          {%- endfor -%}
+        </div>
+      {%- endif -%}
+
+      {%- if block.settings.enable_autoloop -%}
+        <div class="pvt2__progress is-active" id="pvt2-progress-{{ block_id }}">
+          <div class="pvt2__progress-bar" id="pvt2-bar-{{ block_id }}"></div>
+        </div>
+      {%- endif -%}
+
+      {%- if visible_count > initial_vis -%}
+        <div class="pvt2__show-more-wrap" id="pvt2-showmore-wrap-{{ block_id }}">
+          <button type="button" class="pvt2__show-more" id="pvt2-show-more-{{ block_id }}">
+            Show more stories
+          </button>
+        </div>
+      {%- endif -%}
+
+    {%- else -%}
+      <div class="pvt2__empty">
+        {%- if product != blank -%}<p>No video testimonials for this product yet.</p>
+        {%- else -%}<p>Add testimonials in the Video Testimonials App to showcase customer video reviews.</p>{%- endif -%}
+      </div>
+    {%- endif -%}
+
+  </div>
+</section>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Reel Section",
+  "target": "section",
+  "stylesheet": "video-testimonials.css",
+  "javascript": "video-testimonials.js",
+  "settings": [
+    { "type": "header", "content": "Header & Section" },
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Customer Stories" },
+    { "type": "text", "id": "subheading", "label": "Subheading" },
+    { "type": "select", "id": "heading_align", "label": "Heading alignment", "options": [{ "value": "left", "label": "Left" }, { "value": "center", "label": "Center" }, { "value": "right", "label": "Right" }], "default": "center" },
+    { "type": "range", "id": "heading_size", "label": "Heading font size", "min": 18, "max": 44, "step": 2, "unit": "px", "default": 28 },
+    { "type": "color", "id": "heading_color", "label": "Heading color", "default": "#f4f3ef" },
+    { "type": "color", "id": "subheading_color", "label": "Subheading color", "default": "#a1a1aa" },
+    { "type": "color", "id": "bg_color", "label": "Section background color", "default": "#000000" },
+    { "type": "range", "id": "padding_top", "label": "Top padding", "min": 0, "max": 100, "step": 4, "unit": "px", "default": 24 },
+    { "type": "range", "id": "padding_bottom", "label": "Bottom padding", "min": 0, "max": 100, "step": 4, "unit": "px", "default": 24 },
+
+    { "type": "header", "content": "Card Styling & Content" },
+    { "type": "color", "id": "card_bg", "label": "Card background color", "default": "#17171a" },
+    { "type": "color", "id": "card_border", "label": "Card border color", "default": "#2e2e34" },
+    { "type": "range", "id": "card_radius", "label": "Card corner radius", "min": 0, "max": 32, "step": 2, "unit": "px", "default": 16 },
+    { "type": "range", "id": "card_width", "label": "Card width", "min": 200, "max": 400, "step": 10, "unit": "px", "default": 280 },
+    { "type": "range", "id": "card_height", "label": "Card media height", "min": 300, "max": 600, "step": 20, "unit": "px", "default": 460 },
+    { "type": "range", "id": "card_gap", "label": "Gap between cards", "min": 8, "max": 32, "step": 2, "unit": "px", "default": 16 },
+    { "type": "color", "id": "name_color", "label": "Customer name color", "default": "#c9a15a" },
+    { "type": "range", "id": "name_size", "label": "Customer name font size", "min": 12, "max": 22, "step": 1, "unit": "px", "default": 15 },
+    { "type": "color", "id": "role_color", "label": "Customer role / subtitle color", "default": "#8e8e93" },
+    { "type": "color", "id": "review_color", "label": "Review text color", "default": "#f4f3ef" },
+    { "type": "range", "id": "review_size", "label": "Review font size", "min": 11, "max": 18, "step": 1, "unit": "px", "default": 14 },
+    { "type": "color", "id": "star_color", "label": "Star ratings color", "default": "#c9a15a" },
+    { "type": "color", "id": "badge_bg", "label": "Verified badge background", "default": "#0c0c0e" },
+    { "type": "color", "id": "badge_color", "label": "Verified badge text / icon", "default": "#ffffff" },
+    { "type": "color", "id": "play_bg", "label": "Play button background", "default": "#0c0c0e" },
+    { "type": "color", "id": "play_color", "label": "Play button icon color", "default": "#ffffff" },
+
+    { "type": "header", "content": "⭐ Pro Features [Preview Only]" },
+    { "type": "checkbox", "id": "enable_product_pill", "label": "Click-to-Shop product tag", "default": true },
+    { "type": "text", "id": "pill_btn_text", "label": "Product buy button text", "default": "BUY" },
+    { "type": "color", "id": "pill_btn_bg", "label": "Product buy button background", "default": "#05fff7" },
+    { "type": "color", "id": "pill_btn_color", "label": "Product buy button text color", "default": "#000000" },
+    { "type": "color", "id": "pill_price_color", "label": "Product price color", "default": "#05fff7" },
+    { "type": "color", "id": "pill_border_color", "label": "Product tag border color", "default": "#05fff7" },
+    { "type": "checkbox", "id": "enable_glow_hover", "label": "Interactive card hover glow", "default": true },
+    { "type": "color", "id": "glow_color", "label": "Card hover glow color", "default": "#05fff7" },
+    { "type": "checkbox", "id": "enable_verified_badge", "label": "Show verified badge", "default": true },
+    { "type": "text", "id": "custom_badge_text", "label": "Custom badge label", "default": "Verified" },
+
+    { "type": "header", "content": "Layout & Navigation" },
+    { "type": "select", "id": "layout_mode", "label": "Layout mode", "options": [{ "value": "carousel", "label": "Carousel (horizontal scroll)" },{ "value": "grid", "label": "Grid" }], "default": "carousel" },
+    { "type": "range", "id": "grid_columns", "label": "Grid columns (desktop)", "min": 2, "max": 4, "step": 1, "default": 3 },
+    { "type": "checkbox", "id": "show_arrows", "label": "Show arrow buttons", "default": true },
+    { "type": "color", "id": "arrow_bg", "label": "Arrow button background", "default": "#1c1c20" },
+    { "type": "color", "id": "arrow_color", "label": "Arrow button icon color", "default": "#f4f3ef" },
+    { "type": "checkbox", "id": "show_dots", "label": "Show dot indicators", "default": true },
+    { "type": "color", "id": "dot_color", "label": "Active dot indicator color", "default": "#c9a15a" },
+    { "type": "checkbox", "id": "show_stars", "label": "Show star ratings", "default": true },
+    { "type": "checkbox", "id": "enable_video_autoplay", "label": "Auto-play videos when visible", "default": true },
+    { "type": "checkbox", "id": "enable_autoloop", "label": "Auto-loop carousel timer", "default": false },
+    { "type": "range", "id": "autoloop_speed", "label": "Auto-loop timer speed", "min": 2, "max": 10, "step": 1, "unit": "s", "default": 4 },
+    { "type": "checkbox", "id": "enable_unmute", "label": "Allow unmute button", "default": true }
+  ]
+}
+{% endschema %}
