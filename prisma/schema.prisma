@@ -65,3 +65,13 @@ model ViewCount {
 
   @@unique([shop, date])
 }
+
+model Feedback {
+  id        Int      @id @default(autoincrement())
+  shop      String
+  email     String?
+  rating    Int
+  type      String
+  message   String
+  createdAt DateTime @default(now())
+}

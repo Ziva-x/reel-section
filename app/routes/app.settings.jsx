@@ -15,8 +15,10 @@ import {
   InlineStack,
   Box,
   Modal,
+  Select,
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
+import prisma from "../db.server";
 import { LIFETIME_PLAN, MONTHLY_PLAN } from "../constants";
 import { syncTestimonialsToMetafields } from "../metafields.server";
 
@@ -42,9 +44,21 @@ export const action = async ({ request }) => {
 
   if (actionType === "feedback") {
     const feedback = formData.get("feedback");
-    const email = formData.get("email");
-    console.log(`[Feedback Received from ${session.shop} (${email})]:`, feedback);
-    return json({ success: true, message: "Thank you! Your feedback has been sent directly to the development team." });
+    const email = formData.get("email") || "";
+    const rating = parseInt(formData.get("rating"), 10) || 5;
+    const type = formData.get("type") || "feature";
+
+    await prisma.feedback.create({
+      data: {
+        shop: session.shop,
+        email,
+        rating,
+        type,
+        message: feedback,
+      }
+    });
+    console.log(`[${type.toUpperCase()} from ${session.shop}]:`, feedback);
+    return json({ success: true, message: "Thank you! Your submission has been saved directly to the engineering dashboard." });
   }
 
   if (actionType === "sync_pro") {
@@ -74,6 +88,7 @@ export default function Settings() {
   const isSubmitting = nav.state === "submitting";
 
   const [selectedRating, setSelectedRating] = useState(5);
+  const [feedbackType, setFeedbackType] = useState("feature");
   const [feedbackText, setFeedbackText] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [showUninstallInfo, setShowUninstallInfo] = useState(false);
@@ -89,6 +104,7 @@ export default function Settings() {
         _action: "feedback",
         feedback: feedbackText,
         rating: selectedRating.toString(),
+        type: feedbackType,
         email: contactEmail,
       },
       { method: "post" }
@@ -154,6 +170,17 @@ export default function Settings() {
                     </Text>
                   </InlineStack>
                 </BlockStack>
+
+                <Select
+                  label="Category"
+                  options={[
+                    { label: "💡 Feature Request / Suggestion", value: "feature" },
+                    { label: "🐛 Bug Report / Complaint", value: "bug" },
+                    { label: "⭐ General Feedback", value: "feedback" },
+                  ]}
+                  value={feedbackType}
+                  onChange={setFeedbackType}
+                />
 
                 <TextField
                   label="Your feedback, suggestions, or feature requests:"
