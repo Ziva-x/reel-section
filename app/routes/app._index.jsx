@@ -346,6 +346,7 @@ export default function Index() {
           </Layout.Section>
         </Layout>
       </BlockStack>
+      <div style={{ height: "40px" }} />
     </Page>
   );
 }

@@ -354,6 +354,7 @@ export default function Settings() {
           </BlockStack>
         </Layout.Section>
       </Layout>
+      <div style={{ height: "40px" }} />
 
       {/* Uninstall Guide Modal */}
       <Modal

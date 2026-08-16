@@ -482,6 +482,7 @@ export default function Pricing() {
           </BlockStack>
         </Layout.Section>
       </Layout>
+      <div style={{ height: "40px" }} />
     </Page>
   );
 }

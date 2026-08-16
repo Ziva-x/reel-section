@@ -271,6 +271,7 @@ export default function Analytics() {
           </BlockStack>
         </Layout.Section>
       </Layout>
+      <div style={{ height: "40px" }} />
 
       {/* Custom Date Range Modal */}
       <Modal
