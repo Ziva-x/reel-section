@@ -343,22 +343,22 @@ export default function Settings() {
                 
                 <Divider />
 
-                {/* Channel 1: Email Support / Mail Us (All Users) */}
+                {/* Channel 1: Live Chat & Email Support */}
                 <Box background="bg-surface-secondary" padding="300" borderRadius="200">
                   <BlockStack gap="200">
                     <InlineStack align="space-between" blockAlign="center">
-                      <Text variant="bodySm" fontWeight="bold">✉️ Email Support (Mail Us)</Text>
-                      <Badge tone="info">All Plans</Badge>
+                      <Text variant="bodySm" fontWeight="bold">💬 Live Chat & Email Support</Text>
+                      <Badge tone="success">🟢 Active</Badge>
                     </InlineStack>
                     <Text variant="bodySm" tone="subdued">
-                      Send us an email with questions or store details and our team will get back to you promptly.
+                      Click the floating <strong>💬 Live Support</strong> button in the bottom corner of any page, or send an email to our engineering team.
                     </Text>
                     <Button
                       variant="primary"
                       fullWidth
                       url={supportMailUrl}
                     >
-                      ✉️ Mail Us (support@zxtysix.com)
+                      ✉️ Email Us (support@zxtysix.com)
                     </Button>
                   </BlockStack>
                 </Box>
