@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { json } from "@remix-run/node";
-import { useLoaderData, useNavigate, useRevalidator } from "@remix-run/react";
+import { useLoaderData, useNavigate, useRevalidator, useNavigation } from "@remix-run/react";
 import {
   Page,
   Layout,
@@ -194,6 +194,7 @@ export default function SetupTour() {
   const { shop, testimonialCount, totalViews, isThemeBlockDetected } = useLoaderData();
   const navigate = useNavigate();
   const revalidator = useRevalidator();
+  const navigation = useNavigation();
 
   const [step2Manual, setStep2Manual] = useState(false);
   const [step3Manual, setStep3Manual] = useState(false);
@@ -261,8 +262,9 @@ export default function SetupTour() {
       title="Setup & Interactive Tour"
       subtitle="Follow your live progress checklist to launch high-converting video review reels."
       primaryAction={{
-        content: "🔄 Check Live Status",
+        content: navigation.state === "loading" ? "Checking..." : "🔄 Check Live Status",
         onAction: () => revalidator.revalidate(),
+        loading: navigation.state === "loading",
       }}
     >
       <Confetti active={showConfetti} />
@@ -470,11 +472,11 @@ export default function SetupTour() {
         </Layout.Section>
       </Layout>
 
-      {/* Celebratory Welcome & Free Plan Activated Modal */}
+      {/* Celebratory Welcome Modal */}
       <Modal
         open={showWelcomeModal}
         onClose={() => setShowWelcomeModal(false)}
-        title="🎉 Welcome to Reel Section — Free Plan Active!"
+        title="🎉 Welcome to Reel Section — Setup Complete!"
         primaryAction={{
           content: "Go to Dashboard & Manage Testimonials",
           onAction: () => {
@@ -495,19 +497,18 @@ export default function SetupTour() {
           <BlockStack gap="400">
             <Banner tone="success" title="Your Video Review Reels Are Live!">
               <p>
-                Congratulations! Your store is now fully set up with high-converting video review reels. Your <strong>Free Plan (1,000 Free Views / Month)</strong> is active!
+                Congratulations! Your store is now fully set up with high-converting video review reels. Your impressions are now being tracked in real time!
               </p>
             </Banner>
 
             <Box padding="300" background="bg-surface-secondary" borderRadius="200">
               <BlockStack gap="200">
-                <Text variant="headingSm" as="h4">🎁 Included in Your Free Plan:</Text>
+                <Text variant="headingSm" as="h4">🚀 Quick Tips for Success:</Text>
                 <List>
-                  <List.Item><strong>1,000 High-Speed Video Views / Month</strong> (refreshed every month).</List.Item>
-                  <List.Item><strong>Simultaneous In-View Video Autoplay</strong> with zero buffering delay.</List.Item>
-                  <List.Item><strong>Automatic HD First-Frame Thumbnails</strong> (no manual uploads needed).</List.Item>
-                  <List.Item><strong>Responsive Carousel & Grid Modes</strong> with custom speed timer (2–10s).</List.Item>
-                  <List.Item><strong>Zero Code Clutter:</strong> 100% native Shopify OS 2.0 theme extension.</List.Item>
+                  <List.Item><strong>Upload frequently:</strong> Add new customer video reviews to keep your store fresh.</List.Item>
+                  <List.Item><strong>Tag your products:</strong> Link a product handle to a video so it only appears on that specific product's page.</List.Item>
+                  <List.Item><strong>Track your views:</strong> Use the Analytics dashboard to see how many people are watching your reviews.</List.Item>
+                  <List.Item><strong>Customize freely:</strong> Go to the Theme Editor anytime to adjust colors, sizes, and layout modes.</List.Item>
                 </List>
               </BlockStack>
             </Box>
