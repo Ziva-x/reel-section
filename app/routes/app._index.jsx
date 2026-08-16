@@ -24,7 +24,7 @@ export const loader = async ({ request }) => {
   const { session, admin, billing } = await authenticate.admin(request);
   let testimonials = await prisma.testimonial.findMany({
     where: { shop: session.shop },
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
   });
 
   // RESTORE LOGIC: Since Render free tier wipes the SQLite DB on restarts, 
@@ -68,7 +68,7 @@ export const loader = async ({ request }) => {
           // Re-fetch restored data
           testimonials = await prisma.testimonial.findMany({
             where: { shop: session.shop },
-            orderBy: { createdAt: "desc" },
+            orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
           });
         }
       }
@@ -137,6 +137,35 @@ export const action = async ({ request }) => {
         },
       });
     }
+  } else if (actionType === "move_up" || actionType === "move_down") {
+    const id = ids[0];
+    const allRecords = await prisma.testimonial.findMany({
+      where: { shop: session.shop },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+    });
+    
+    const currentIndex = allRecords.findIndex(r => r.id === id);
+    const swapIndex = actionType === "move_up" ? currentIndex - 1 : currentIndex + 1;
+    
+    if (swapIndex >= 0 && swapIndex < allRecords.length) {
+      // Normalize sort orders in case they are all 0
+      for (let i = 0; i < allRecords.length; i++) {
+        allRecords[i].sortOrder = i;
+      }
+      
+      // Swap the sortOrders
+      const temp = allRecords[currentIndex].sortOrder;
+      allRecords[currentIndex].sortOrder = allRecords[swapIndex].sortOrder;
+      allRecords[swapIndex].sortOrder = temp;
+      
+      // Update DB in a transaction
+      await prisma.$transaction(
+        allRecords.map(r => prisma.testimonial.update({
+          where: { id: r.id },
+          data: { sortOrder: r.sortOrder }
+        }))
+      );
+    }
   }
 
   let hasPaidPlan = false;
@@ -202,6 +231,38 @@ export default function Index() {
         onClick={() => navigate(`/app/testimonials/${id}`)}
       >
         <IndexTable.Cell>
+          <InlineStack gap="100" wrap={false} blockAlign="center">
+            <Button
+              size="micro"
+              variant="tertiary"
+              disabled={index === 0}
+              onClick={(e) => {
+                e.stopPropagation();
+                const formData = new FormData();
+                formData.append("action", "move_up");
+                formData.append("ids", JSON.stringify([id]));
+                submit(formData, { method: "post" });
+              }}
+            >
+              ↑
+            </Button>
+            <Button
+              size="micro"
+              variant="tertiary"
+              disabled={index === testimonials.length - 1}
+              onClick={(e) => {
+                e.stopPropagation();
+                const formData = new FormData();
+                formData.append("action", "move_down");
+                formData.append("ids", JSON.stringify([id]));
+                submit(formData, { method: "post" });
+              }}
+            >
+              ↓
+            </Button>
+          </InlineStack>
+        </IndexTable.Cell>
+        <IndexTable.Cell>
           <Text variant="bodyMd" fontWeight="bold" as="span">
             {customerName}
           </Text>
@@ -264,6 +325,7 @@ export default function Index() {
                   onSelectionChange={handleSelectionChange}
                   promotedBulkActions={promotedBulkActions}
                   headings={[
+                    { title: "Order" },
                     { title: "Customer" },
                     { title: "Rating" },
                     { title: "Badge" },

@@ -4,7 +4,10 @@ export async function syncTestimonialsToMetafields(admin, shop, hasPaidPlan = fa
   try {
     const allTestimonials = await prisma.testimonial.findMany({
       where: { shop },
-      orderBy: { createdAt: "desc" },
+      orderBy: [
+        { sortOrder: "asc" },
+        { createdAt: "desc" }
+      ],
     });
 
     const shopResponse = await admin.graphql(`#graphql
