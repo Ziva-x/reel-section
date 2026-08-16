@@ -55,7 +55,7 @@
   assign block_id         = block.id | default: section.id | default: 'main'
 
   assign is_pro_active    = false
-  if is_paid_member or request.design_mode
+  if is_paid_member
     assign is_pro_active  = true
   endif
 
@@ -349,8 +349,18 @@
     { "type": "color", "id": "pill_btn_color", "label": "Product buy button text color", "default": "#000000" },
     { "type": "color", "id": "pill_price_color", "label": "Product price color", "default": "#05fff7" },
     { "type": "color", "id": "pill_border_color", "label": "Product tag border color", "default": "#05fff7" },
-    { "type": "checkbox", "id": "enable_glow_hover", "label": "Interactive card hover glow", "default": true },
-    { "type": "color", "id": "glow_color", "label": "Card hover glow color", "default": "#c9a15a" },
+      {
+        "type": "checkbox",
+        "id": "enable_glow_hover",
+        "label": "Interactive card hover border",
+        "default": true
+      },
+      {
+        "type": "color",
+        "id": "glow_color",
+        "label": "Card hover border color",
+        "default": "#C9A15A"
+      },
     { "type": "checkbox", "id": "enable_verified_badge", "label": "Show verified badge", "default": true },
     { "type": "text", "id": "custom_badge_text", "label": "Custom badge label", "default": "Verified" },
 
