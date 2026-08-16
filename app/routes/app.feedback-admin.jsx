@@ -19,23 +19,29 @@ import prisma from "../db.server";
 import { authenticate } from "../shopify.server";
 
 export const loader = async ({ request }) => {
-  await authenticate.admin(request);
-  const url = new URL(request.url);
-  const passcode = url.searchParams.get("passcode");
-  
-  if (passcode !== "monkeygarage") {
-    return json({ isAuthenticated: false, feedback: [] });
+  try {
+    await authenticate.admin(request);
+    const url = new URL(request.url);
+    const passcode = url.searchParams.get("passcode");
+    
+    if (passcode !== "monkeygarage") {
+      return json({ isAuthenticated: false, feedback: [], error: null });
+    }
+
+    const feedback = await prisma.feedback.findMany({
+      orderBy: { createdAt: "desc" }
+    });
+
+    return json({ isAuthenticated: true, feedback, error: null });
+  } catch (error) {
+    console.error("Feedback Admin Loader Error:", error);
+    // Return a 200 with error details so the page loads and shows the error instead of Shopify 500 screen
+    return json({ isAuthenticated: false, feedback: [], error: error.message || String(error) });
   }
-
-  const feedback = await prisma.feedback.findMany({
-    orderBy: { createdAt: "desc" }
-  });
-
-  return json({ isAuthenticated: true, feedback });
 };
 
 export default function FeedbackAdmin() {
-  const { isAuthenticated, feedback } = useLoaderData();
+  const { isAuthenticated, feedback, error } = useLoaderData();
   const [passcode, setPasscode] = useState("");
   const submit = useSubmit();
   const nav = useNavigation();
@@ -62,6 +68,9 @@ export default function FeedbackAdmin() {
                     <Button submit variant="primary" loading={nav.state === "loading"}>Unlock</Button>
                   </InlineStack>
                 </Form>
+                {error && (
+                  <Badge tone="critical">Error: {error}</Badge>
+                )}
               </BlockStack>
             </Card>
           </Layout.Section>
