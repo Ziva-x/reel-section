@@ -38,7 +38,7 @@ export const loader = async ({ request }) => {
 };
 
 export const action = async ({ request }) => {
-  const { session } = await authenticate.admin(request);
+  const { session, billing, admin } = await authenticate.admin(request);
   const formData = await request.formData();
   const actionType = formData.get("_action");
 
