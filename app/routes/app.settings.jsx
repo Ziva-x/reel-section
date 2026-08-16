@@ -18,6 +18,7 @@ import {
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import { LIFETIME_PLAN, MONTHLY_PLAN } from "../constants";
+import { syncTestimonialsToMetafields } from "../metafields.server";
 
 export const loader = async ({ request }) => {
   const { session, billing } = await authenticate.admin(request);
@@ -44,6 +45,21 @@ export const action = async ({ request }) => {
     const email = formData.get("email");
     console.log(`[Feedback Received from ${session.shop} (${email})]:`, feedback);
     return json({ success: true, message: "Thank you! Your feedback has been sent directly to the development team." });
+  }
+
+  if (actionType === "sync_pro") {
+    let hasPaidPlan = false;
+    try {
+      const billingCheck = await billing.check({
+        plans: [LIFETIME_PLAN, MONTHLY_PLAN],
+        isTest: true,
+      });
+      hasPaidPlan = !!billingCheck.hasActivePayment;
+    } catch (e) {
+      hasPaidPlan = false;
+    }
+    await syncTestimonialsToMetafields(admin, session.shop, hasPaidPlan);
+    return json({ success: true, message: "Pro features successfully activated and synced to storefront!" });
   }
 
   return json({ success: true });
@@ -79,6 +95,10 @@ export default function Settings() {
     );
   };
 
+  const handleSyncPro = () => {
+    submit({ _action: "sync_pro" }, { method: "post" });
+  };
+
   return (
     <Page
       title="Settings & Support"
@@ -86,7 +106,7 @@ export default function Settings() {
     >
       {actionData?.message && (
         <div style={{ marginBottom: "20px" }}>
-          <Banner title="Feedback Received" tone="success" onDismiss={() => {}}>
+          <Banner title="Success" tone="success" onDismiss={() => {}}>
             <p>{actionData.message}</p>
           </Banner>
         </div>
@@ -192,6 +212,29 @@ export default function Settings() {
                     <Badge tone="success">Operational</Badge>
                   </InlineStack>
                 </BlockStack>
+              </BlockStack>
+            </Card>
+
+            {/* Sync Pro Features Card */}
+            <Card>
+              <BlockStack gap="300">
+                <InlineStack align="space-between" blockAlign="center">
+                  <Text variant="headingMd" as="h3">🔄 Sync Pro Features</Text>
+                  <Badge tone="success">Troubleshooting</Badge>
+                </InlineStack>
+                <Text variant="bodyMd" tone="subdued">
+                  If you just purchased a Pro plan and your live storefront doesn't reflect the premium features yet, click below to force a manual synchronization.
+                </Text>
+                <Divider />
+                <InlineStack>
+                  <Button
+                    variant="primary"
+                    onClick={handleSyncPro}
+                    loading={isSubmitting}
+                  >
+                    ✅ Activate Pro Features Now
+                  </Button>
+                </InlineStack>
               </BlockStack>
             </Card>
 
