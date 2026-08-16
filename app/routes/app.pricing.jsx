@@ -19,7 +19,7 @@ import {
 import { authenticate } from "../shopify.server";
 import { LIFETIME_PLAN, MONTHLY_PLAN } from "../constants";
 import { syncTestimonialsToMetafields } from "../metafields.server";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 
 export const loader = async ({ request }) => {
   const { admin, billing } = await authenticate.admin(request);
@@ -61,12 +61,17 @@ export const loader = async ({ request }) => {
     }
   } catch (e) {}
 
-  const hasPaidPlan = hasBillingPayment || !!storedPlanStatus?.hasPaidPlan;
+  const storedHasPaidPlan = !!storedPlanStatus?.hasPaidPlan;
+  const hasPaidPlan = hasBillingPayment || storedHasPaidPlan;
   const activePlan = billingPlanName || (hasPaidPlan ? storedPlanStatus?.planName || "Monthly Pro" : null);
+
+  // needsSync = billing confirmed paid BUT metafield not yet updated → user just purchased
+  const needsSync = hasBillingPayment && !storedHasPaidPlan;
 
   return json({
     hasPaidPlan,
     activePlan,
+    needsSync,
     error: null,
   });
 };
@@ -182,12 +187,36 @@ function Confetti({ active }) {
 export default function Pricing() {
   const loaderData = useLoaderData();
   const actionData = useActionData();
-  const { hasPaidPlan, activePlan } = loaderData;
+  const { hasPaidPlan, activePlan, needsSync } = loaderData;
   const error = actionData?.error || loaderData?.error;
   const submit = useSubmit();
   const navigate = useNavigate();
   const [showWelcome, setShowWelcome] = useState(false);
   const [confetti, setConfetti] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [showSyncModal, setShowSyncModal] = useState(needsSync);
+
+  // Auto-show modal if needsSync changes (e.g. after redirect from billing)
+  useEffect(() => {
+    if (needsSync) setShowSyncModal(true);
+  }, [needsSync]);
+
+  // Close modal automatically once sync succeeds
+  useEffect(() => {
+    if (actionData?.synced && actionData?.hasPaidPlan) {
+      setSyncing(false);
+      setShowSyncModal(false);
+      setConfetti(true);
+      setTimeout(() => setConfetti(false), 2500);
+    } else if (actionData?.synced) {
+      setSyncing(false);
+    }
+  }, [actionData]);
+
+  const handleForceSync = () => {
+    setSyncing(true);
+    submit({ plan: "force_sync" }, { method: "post" });
+  };
 
   const handleFreeStart = useCallback(() => {
     setConfetti(true);
@@ -207,6 +236,45 @@ export default function Pricing() {
       subtitle="Simple, transparent pricing. Free starter plan, flexible $2/mo subscription, or $10 lifetime access."
     >
       <Confetti active={confetti} />
+
+      {/* Blocking Post-Purchase Sync Modal */}
+      <Modal
+        open={showSyncModal}
+        onClose={() => {}} // intentionally blocked — cannot close
+        title="🎉 Welcome to Pro! One Last Step..."
+        noScroll
+      >
+        <Modal.Section>
+          <BlockStack gap="500">
+            <div style={{ textAlign: "center", padding: "8px 0" }}>
+              <div style={{ fontSize: "52px", marginBottom: "8px" }}>🚀</div>
+              <Text variant="headingLg" as="h2">Activate Your Pro Features</Text>
+            </div>
+            <Text as="p" tone="subdued" alignment="center">
+              Your payment was successful! Click below to activate Pro features on your live storefront — this only takes a second.
+            </Text>
+            {actionData?.synced && !actionData?.hasPaidPlan && (
+              <Banner title="Sync issue" tone="warning">
+                <p>Could not confirm an active plan. Please try again or contact support.</p>
+              </Banner>
+            )}
+            <div style={{ display: "flex", justifyContent: "center" }}>
+              <Button
+                variant="primary"
+                size="large"
+                loading={syncing}
+                disabled={syncing}
+                onClick={handleForceSync}
+              >
+                {syncing ? "Activating..." : "✅ Activate Pro Features Now"}
+              </Button>
+            </div>
+            <Text as="p" variant="bodySm" tone="subdued" alignment="center">
+              This syncs your billing status so Pro features appear on your storefront.
+            </Text>
+          </BlockStack>
+        </Modal.Section>
+      </Modal>
 
       {error && (
         <div style={{ marginBottom: "20px" }}>
