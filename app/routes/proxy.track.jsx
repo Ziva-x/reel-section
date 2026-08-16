@@ -11,33 +11,28 @@ export const action = async ({ request }) => {
     const { session } = await authenticate.public.appProxy(request);
     
     if (session) {
-      // Record a view for this shop
+      const url = new URL(request.url);
+      const actionType = url.searchParams.get("action");
+      const isClick = actionType === "click";
+      
       const today = new Date();
       today.setHours(0, 0, 0, 0); // Start of day for grouping
       
       const shop = session.shop;
       
-      // Update or create a ViewCount record for today
-      await prisma.viewCount.upsert({
-        where: {
-          shop_date: {
-            shop,
-            date: today,
-          }
-        },
-        update: {
-          count: {
-            increment: 1
-          }
-        },
-        create: {
-          shop,
-          date: today,
-          count: 1
-        }
-      });
-      
-      // TODO: Handle Usage Billing here
+      if (isClick) {
+        await prisma.viewCount.upsert({
+          where: { shop_date: { shop, date: today } },
+          update: { clicks: { increment: 1 } },
+          create: { shop, date: today, clicks: 1 }
+        });
+      } else {
+        await prisma.viewCount.upsert({
+          where: { shop_date: { shop, date: today } },
+          update: { count: { increment: 1 } },
+          create: { shop, date: today, count: 1 }
+        });
+      }
       
       return json({ success: true }, { headers: { "Access-Control-Allow-Origin": "*" } });
     }

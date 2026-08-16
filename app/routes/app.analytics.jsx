@@ -69,6 +69,8 @@ export const loader = async ({ request }) => {
       orderBy: { date: "asc" },
     });
     const totalViews = views.reduce((acc, curr) => acc + curr.count, 0);
+    const totalClicks = views.reduce((acc, curr) => acc + curr.clicks, 0);
+    const totalPurchases = views.reduce((acc, curr) => acc + curr.purchases, 0);
 
     // Also calculate monthly total for free tier limit (1000 views)
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -80,6 +82,8 @@ export const loader = async ({ request }) => {
 
     return json({
       totalViews,
+      totalClicks,
+      totalPurchases,
       thisMonthTotal,
       filter,
       startParam: startParam || null,
@@ -88,6 +92,8 @@ export const loader = async ({ request }) => {
   } catch (e) {
     return json({
       totalViews: 0,
+      totalClicks: 0,
+      totalPurchases: 0,
       thisMonthTotal: 0,
       filter,
       startParam: null,
@@ -97,7 +103,8 @@ export const loader = async ({ request }) => {
 };
 
 export default function Analytics() {
-  const { totalViews, thisMonthTotal, filter, startParam, endParam } = useLoaderData();
+  const { totalViews, totalClicks, totalPurchases, thisMonthTotal, filter, startParam, endParam } = useLoaderData();
+
   const submit = useSubmit();
   const navigate = useNavigate();
 
@@ -195,7 +202,7 @@ export default function Analytics() {
             </Card>
 
             <Grid>
-              <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 6, xl: 6 }}>
+              <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 3, xl: 3 }}>
                 <Card>
                   <BlockStack gap="200">
                     <Text variant="headingMd" as="h3" tone="subdued">
@@ -213,7 +220,39 @@ export default function Analytics() {
                 </Card>
               </Grid.Cell>
 
-              <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 6, xl: 6 }}>
+              <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 3, xl: 3 }}>
+                <Card>
+                  <BlockStack gap="200">
+                    <Text variant="headingMd" as="h3" tone="subdued">
+                      Pill Clicks
+                    </Text>
+                    <Text variant="heading3xl" as="p" fontWeight="bold">
+                      {totalClicks.toLocaleString()}
+                    </Text>
+                    <Text variant="bodySm" as="p" tone="subdued">
+                      Liquid Glass Tag clicks
+                    </Text>
+                  </BlockStack>
+                </Card>
+              </Grid.Cell>
+
+              <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 3, xl: 3 }}>
+                <Card>
+                  <BlockStack gap="200">
+                    <Text variant="headingMd" as="h3" tone="subdued">
+                      Purchases
+                    </Text>
+                    <Text variant="heading3xl" as="p" fontWeight="bold">
+                      {totalPurchases.toLocaleString()}
+                    </Text>
+                    <Text variant="bodySm" as="p" tone="subdued">
+                      From video clicks
+                    </Text>
+                  </BlockStack>
+                </Card>
+              </Grid.Cell>
+
+              <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 3, xl: 3 }}>
                 <Card>
                   <BlockStack gap="200">
                     <Text variant="headingMd" as="h3" tone="subdued">
@@ -223,7 +262,7 @@ export default function Analytics() {
                       {Math.max(0, 1000 - thisMonthTotal).toLocaleString()}
                     </Text>
                     <Text variant="bodySm" as="p" tone="subdued">
-                      Views left this month (out of 1,000 free views)
+                      Views left this month
                     </Text>
                   </BlockStack>
                 </Card>

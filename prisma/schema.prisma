@@ -57,6 +57,8 @@ model ViewCount {
   shop      String
   date      DateTime
   count     Int      @default(0)
+  clicks    Int      @default(0)
+  purchases Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

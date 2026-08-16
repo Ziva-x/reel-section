@@ -171,6 +171,13 @@
           soundBtn.setAttribute("aria-label", willUnmute ? "Mute video" : "Unmute video");
         });
       }
+
+      var pill = wrap.querySelector(".pvt2__glass-pill");
+      if (pill) {
+        pill.addEventListener("click", function () {
+          fetch("/apps/reelsection?action=click", { method: "POST" }).catch(function () {});
+        });
+      }
     });
 
     if (arrowPrev) {
