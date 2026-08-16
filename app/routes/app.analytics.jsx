@@ -72,7 +72,7 @@ export const loader = async ({ request }) => {
     const totalClicks = views.reduce((acc, curr) => acc + curr.clicks, 0);
     const totalPurchases = views.reduce((acc, curr) => acc + curr.purchases, 0);
 
-    // Also calculate monthly total for free tier limit (1000 views)
+    // Also calculate monthly total for free tier limit (500 views)
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const monthEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
     const monthViews = await prisma.viewCount.findMany({
@@ -259,7 +259,7 @@ export default function Analytics() {
                       Free Tier Remaining
                     </Text>
                     <Text variant="heading3xl" as="p" fontWeight="bold">
-                      {Math.max(0, 1000 - thisMonthTotal).toLocaleString()}
+                      {Math.max(0, 500 - thisMonthTotal).toLocaleString()}
                     </Text>
                     <Text variant="bodySm" as="p" tone="subdued">
                       Views left this month

@@ -17,7 +17,7 @@ export async function syncTestimonialsToMetafields(admin, shop, hasPaidPlan = fa
     const shopId = shopData.data?.shop?.id;
     if (!shopId) return;
 
-    // Calculate monthly views for 1000 view free limit enforcement
+    // Calculate monthly views for 500 view free limit enforcement
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
@@ -27,14 +27,14 @@ export async function syncTestimonialsToMetafields(admin, shop, hasPaidPlan = fa
       _sum: { count: true },
     });
     const monthlyViews = viewsThisMonth._sum.count || 0;
-    const isLimitReached = !hasPaidPlan && monthlyViews >= 1000;
+    const isLimitReached = !hasPaidPlan && monthlyViews >= 500;
 
     const planStatus = {
       isLimitReached,
       hasPaidPlan: !!hasPaidPlan,
       hasLifetime: !!hasPaidPlan,
       monthlyViews,
-      monthlyLimit: 1000,
+      monthlyLimit: 500,
       plan: hasPaidPlan ? "pro" : "free",
       planName: planName || (hasPaidPlan ? "Monthly Pro" : "Free Starter"),
     };
