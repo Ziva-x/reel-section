@@ -97,8 +97,9 @@ export const action = async ({ request }) => {
   }
 
   const chosenPlan = plan === "monthly" ? MONTHLY_PLAN : LIFETIME_PLAN;
-  const url = new URL(request.url);
-  const returnUrl = `${url.origin}/app/pricing`;
+  // Redirect back to the embedded app inside Shopify Admin, NOT the naked app URL
+  const shopName = session.shop.replace('.myshopify.com', '');
+  const returnUrl = `https://admin.shopify.com/store/${shopName}/apps/${process.env.SHOPIFY_API_KEY}/app/pricing`;
 
   try {
     return await billing.request({
