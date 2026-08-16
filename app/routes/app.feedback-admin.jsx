@@ -12,7 +12,7 @@ import {
   TextField,
   Button,
   InlineStack,
-  EmptySearchResult,
+  EmptyState,
   Box,
 } from "@shopify/polaris";
 import prisma from "../db.server";
@@ -116,11 +116,12 @@ export default function FeedbackAdmin() {
           <Card padding="0">
             {feedback.length === 0 ? (
               <Box padding="400">
-                <EmptySearchResult
-                  title="No feedback yet"
-                  description="When merchants submit feedback, bug reports, or feature requests, they will appear here."
-                  withIllustration
-                />
+                <EmptyState
+                  heading="No feedback yet"
+                  image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
+                >
+                  <p>When merchants submit feedback, bug reports, or feature requests, they will appear here.</p>
+                </EmptyState>
               </Box>
             ) : (
               <IndexTable
