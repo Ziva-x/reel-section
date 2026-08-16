@@ -353,6 +353,7 @@ export default function TestimonialForm() {
           </BlockStack>
         </Modal.Section>
       </Modal>
+      <div style={{ height: "60px" }} />
 
       <PageActions
         primaryAction={{

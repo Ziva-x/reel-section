@@ -466,6 +466,7 @@ export default function SetupTour() {
           </Card>
         </Layout.Section>
       </Layout>
+      <div style={{ height: "40px" }} />
 
       {/* Celebratory Welcome Modal */}
       <Modal
