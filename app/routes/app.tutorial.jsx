@@ -309,6 +309,33 @@ export default function SetupTour() {
           </Card>
         </Layout.Section>
 
+        {/* Step-by-Step Video Walkthrough */}
+        <Layout.Section>
+          <Card>
+            <BlockStack gap="400">
+              <InlineStack align="space-between" blockAlign="center" wrap>
+                <InlineStack gap="200" blockAlign="center">
+                  <Text variant="headingMd" as="h3">📺 Step-by-Step Video Walkthrough</Text>
+                  <Badge tone="success">HD Video Tutorial</Badge>
+                </InlineStack>
+                <Text variant="bodySm" tone="subdued">2-Minute Quick Start Guide</Text>
+              </InlineStack>
+              <Text as="p" tone="subdued">
+                Watch our quick visual tutorial showing how to upload video reviews, add the Reel Section to your Shopify theme, and configure custom styling.
+              </Text>
+              <div style={{ position: "relative", paddingBottom: "56.25%", height: 0, overflow: "hidden", borderRadius: "12px", boxShadow: "0 4px 16px rgba(0,0,0,0.12)" }}>
+                <iframe
+                  src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0"
+                  title="Reel Section Setup Video Walkthrough"
+                  style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            </BlockStack>
+          </Card>
+        </Layout.Section>
+
         {/* Step 1 */}
         <Layout.Section>
           <Card>

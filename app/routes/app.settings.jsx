@@ -328,100 +328,46 @@ export default function Settings() {
         {/* Right Column: Customer Support */}
         <Layout.Section variant="oneThird">
           <BlockStack gap="500">
-            {/* Customer Support Card */}
+            {/* YouTube Video Tutorials Card */}
             <Card>
               <BlockStack gap="400">
                 <InlineStack align="space-between" blockAlign="center">
-                  <Text variant="headingMd" as="h3">🎧 Customer Support</Text>
-                  <Badge tone={hasPaidPlan ? "success" : "info"}>
-                    {hasPaidPlan ? "VIP Support Active" : "Staff Support"}
-                  </Badge>
+                  <Text variant="headingMd" as="h3">📺 Video Tutorials & Guides</Text>
+                  <Badge tone="info">Watch & Learn</Badge>
                 </InlineStack>
                 <Text variant="bodyMd" tone="subdued">
-                  Need help setting up your video reels or configuring theme blocks? Connect with our support team anytime!
+                  Watch quick step-by-step video guides on setting up video reels, customizing theme styling, and boosting store conversions.
                 </Text>
                 
                 <Divider />
 
-                {/* Channel 1: Live Chat & Instant Support */}
-                <Box background="bg-surface-secondary" padding="300" borderRadius="200">
-                  <BlockStack gap="200">
-                    <InlineStack align="space-between" blockAlign="center">
-                      <Text variant="bodySm" fontWeight="bold">💬 Live Chat Support</Text>
-                      <Badge tone="success">🟢 Online</Badge>
-                    </InlineStack>
-                    <Text variant="bodySm" tone="subdued">
-                      Chat directly with our support engineers in real-time using the corner live chat widget.
-                    </Text>
-                    <InlineStack gap="200">
-                      <div style={{ flex: 1 }}>
-                        <Button
-                          variant="primary"
-                          fullWidth
-                          onClick={() => {
-                            if (typeof window !== "undefined" && window.$crisp) {
-                              window.$crisp.push(["do", "chat:open"]);
-                              window.$crisp.push(["do", "chat:show"]);
-                            }
-                          }}
-                        >
-                          💬 Launch Live Chat
-                        </Button>
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <Button
-                          variant="secondary"
-                          fullWidth
-                          url={supportMailUrl}
-                        >
-                          ✉️ Email Us
-                        </Button>
-                      </div>
-                    </InlineStack>
-                  </BlockStack>
-                </Box>
+                {/* YouTube Video Embed */}
+                <div style={{ position: "relative", paddingBottom: "56.25%", height: 0, overflow: "hidden", borderRadius: "10px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>
+                  <iframe
+                    src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0"
+                    title="Reel Section Setup Tutorial"
+                    style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
 
-                {/* Channel 2: WhatsApp Support 24/7 (Pro & Lifetime Users) */}
-                <Box background="bg-surface-secondary" padding="300" borderRadius="200">
-                  <BlockStack gap="200">
-                    <InlineStack align="space-between" blockAlign="center">
-                      <Text variant="bodySm" fontWeight="bold">📱 WhatsApp support 24/7</Text>
-                      <Badge tone={hasPaidPlan ? "success" : "attention"}>
-                        {hasPaidPlan ? "24/7 Live" : "🔒 Pro Only"}
-                      </Badge>
-                    </InlineStack>
+                <BlockStack gap="200">
+                  <Text variant="bodySm" fontWeight="semibold">Tutorial Topics Covered:</Text>
+                  <List type="bullet">
+                    <List.Item>🎬 Uploading & syncing HD video reviews</List.Item>
+                    <List.Item>🎨 Adding & styling the section in Theme Editor</List.Item>
+                    <List.Item>⚡ Auto-play, loop speed & audio controls</List.Item>
+                  </List>
+                </BlockStack>
 
-                    {hasPaidPlan ? (
-                      <>
-                        <Text variant="bodySm" tone="subdued">
-                          Direct 1-on-1 support on WhatsApp (+91 99478 77747) with 24/7 fast assistance.
-                        </Text>
-                        <Button
-                          tone="success"
-                          variant="primary"
-                          fullWidth
-                          url="https://wa.me/919947877747?text=Hi%2C%20I%20am%20a%20Pro%20member%20and%20need%20help."
-                          target="_blank"
-                        >
-                          💬 Chat on WhatsApp 24/7
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <Text variant="bodySm" tone="subdued">
-                          Direct WhatsApp 24/7 support is exclusive to <strong>Monthly Pro ($2/mo)</strong> and <strong>Lifetime Access ($10)</strong> members.
-                        </Text>
-                        <Button
-                          variant="secondary"
-                          fullWidth
-                          onClick={() => navigate("/app/pricing")}
-                        >
-                          ⚡ Upgrade to Unlock WhatsApp Support 24/7
-                        </Button>
-                      </>
-                    )}
-                  </BlockStack>
-                </Box>
+                <Button
+                  variant="primary"
+                  fullWidth
+                  onClick={() => navigate("/app/tutorial")}
+                >
+                  🚀 Open Full Setup & Interactive Tour
+                </Button>
               </BlockStack>
             </Card>
           </BlockStack>
