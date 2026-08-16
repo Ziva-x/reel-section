@@ -343,23 +343,42 @@ export default function Settings() {
                 
                 <Divider />
 
-                {/* Channel 1: Live Chat & Email Support */}
+                {/* Channel 1: Live Chat & Instant Support */}
                 <Box background="bg-surface-secondary" padding="300" borderRadius="200">
                   <BlockStack gap="200">
                     <InlineStack align="space-between" blockAlign="center">
-                      <Text variant="bodySm" fontWeight="bold">💬 Live Chat & Email Support</Text>
-                      <Badge tone="success">🟢 Active</Badge>
+                      <Text variant="bodySm" fontWeight="bold">💬 Live Chat Support</Text>
+                      <Badge tone="success">🟢 Online</Badge>
                     </InlineStack>
                     <Text variant="bodySm" tone="subdued">
-                      Click the floating <strong>💬 Live Support</strong> button in the bottom corner of any page, or send an email to our engineering team.
+                      Chat directly with our support engineers in real-time using the corner live chat widget.
                     </Text>
-                    <Button
-                      variant="primary"
-                      fullWidth
-                      url={supportMailUrl}
-                    >
-                      ✉️ Email Us (support@zxtysix.com)
-                    </Button>
+                    <InlineStack gap="200">
+                      <div style={{ flex: 1 }}>
+                        <Button
+                          variant="primary"
+                          fullWidth
+                          onClick={() => {
+                            if (typeof window !== "undefined" && window.Tawk_API?.maximize) {
+                              window.Tawk_API.maximize();
+                            } else if (typeof window !== "undefined" && window.Tawk_API?.toggle) {
+                              window.Tawk_API.toggle();
+                            }
+                          }}
+                        >
+                          💬 Launch Live Chat
+                        </Button>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <Button
+                          variant="secondary"
+                          fullWidth
+                          url={supportMailUrl}
+                        >
+                          ✉️ Email Us
+                        </Button>
+                      </div>
+                    </InlineStack>
                   </BlockStack>
                 </Box>
 
