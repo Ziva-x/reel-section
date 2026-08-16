@@ -217,20 +217,37 @@
                       {%- endif -%}
 
                       {%- comment -%} Pro Feature: Click-to-Shop Liquid Glass Product Tag (Preview in Editor, Active for Paid Members) {%- endcomment -%}
-                      {%- if is_pro_active and block.settings.enable_product_pill != false and tagged_prod != blank and tagged_prod.title != blank -%}
-                        <a href="{{ tagged_prod.url }}" class="pvt2__glass-pill" aria-label="Shop {{ tagged_prod.title | escape }}">
-                          {%- if tagged_prod.featured_image != blank -%}
-                            <img src="{{ tagged_prod.featured_image | image_url: width: 64, height: 64, crop: 'center' }}" alt="{{ tagged_prod.title | escape }}" class="pvt2__glass-img" loading="lazy" width="28" height="28">
-                          {%- endif -%}
-                          <div class="pvt2__glass-details">
-                            <span class="pvt2__glass-title">{{ tagged_prod.title | truncate: 15 }}</span>
-                            <span class="pvt2__glass-price">{{ tagged_prod.price | money }}</span>
-                          </div>
-                          <span class="pvt2__glass-btn">
-                            <span>{{ pill_btn_text }}</span>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                      {%- if is_pro_active and block.settings.enable_product_pill != false -%}
+                        {%- if tagged_prod != blank and tagged_prod.title != blank -%}
+                          <a href="{{ tagged_prod.url }}" class="pvt2__glass-pill" aria-label="Shop {{ tagged_prod.title | escape }}">
+                            {%- if tagged_prod.featured_image != blank -%}
+                              <img src="{{ tagged_prod.featured_image | image_url: width: 64, height: 64, crop: 'center' }}" alt="{{ tagged_prod.title | escape }}" class="pvt2__glass-img" loading="lazy" width="28" height="28">
+                            {%- endif -%}
+                            <div class="pvt2__glass-details">
+                              <span class="pvt2__glass-title">{{ tagged_prod.title | truncate: 15 }}</span>
+                              <span class="pvt2__glass-price">{{ tagged_prod.price | money }}</span>
+                            </div>
+                            <span class="pvt2__glass-btn">
+                              <span>{{ pill_btn_text }}</span>
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                            </span>
+                          </a>
+                        {%- elsif request.design_mode -%}
+                          {%- comment -%} Editor-only demo pill so merchants can preview the feature's styling {%- endcomment -%}
+                          <span class="pvt2__glass-pill pvt2__glass-pill--demo" aria-hidden="true">
+                            <span class="pvt2__glass-img pvt2__glass-img--demo">
+                              <svg viewBox="0 0 24 24" fill="currentColor" style="width:14px;height:14px;opacity:.6"><path d="M20 7h-4V5a3 3 0 0 0-6 0v2H6a1 1 0 0 0-1 1v11a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8a1 1 0 0 0-1-1zm-8-2a1 1 0 0 1 2 0v2h-2V5zm7 14H5V9h14v10z"/></svg>
+                            </span>
+                            <div class="pvt2__glass-details">
+                              <span class="pvt2__glass-title">Your Product</span>
+                              <span class="pvt2__glass-price" style="color:var(--pvt-pill-price-color,#05fff7)">$29.00</span>
+                            </div>
+                            <span class="pvt2__glass-btn">
+                              <span>{{ pill_btn_text }}</span>
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                            </span>
                           </span>
-                        </a>
+                        {%- endif -%}
                       {%- endif -%}
 
                       <div class="pvt2__gradient" aria-hidden="true"></div>
