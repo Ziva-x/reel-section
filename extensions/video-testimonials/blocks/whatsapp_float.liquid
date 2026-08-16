@@ -1,251 +1,848 @@
 {% comment %}
-  WhatsApp Floating Action Button by Reel Section
+  Multi-Action Floating Button & WhatsApp CTA by Reel Section / ZXTYSIX LLP
+  Features 28+ vector icons, 15 continuous animations, 5 hover effects, 
+  and custom shape selectors (Round / Pill / Rectangle).
 {% endcomment %}
 
-{% assign phone = block.settings.phone_number | strip | replace: '+', '' | replace: ' ', '' | replace: '-', '' %}
-{% assign message = block.settings.default_message | url_encode %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
 
-{% if phone != blank %}
-  <div
-    class="reel-whatsapp-float-container reel-whatsapp-pos-{{ block.settings.position }}"
-    id="reel-whatsapp-{{ block.id }}"
-    style="
-      --wa-bg: {{ block.settings.bg_color }};
-      --wa-text: {{ block.settings.text_color }};
-      --wa-bottom: {{ block.settings.bottom_offset }}px;
-      --wa-side: {{ block.settings.side_offset }}px;
-    "
-  >
-    {% if block.settings.callout_text != blank %}
-      <a
-        href="https://wa.me/{{ phone }}?text={{ message }}"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="reel-whatsapp-callout"
-      >
-        <span class="reel-whatsapp-callout-text">{{ block.settings.callout_text }}</span>
-        <span class="reel-whatsapp-callout-close" onclick="event.preventDefault(); this.parentElement.style.display='none';">&times;</span>
+{% assign action_url = block.settings.button_url %}
+{% if block.settings.action_type == 'whatsapp' %}
+  {% assign clean_phone = block.settings.whatsapp_phone | strip | replace: '+', '' | replace: ' ', '' | replace: '-', '' %}
+  {% assign encoded_msg = block.settings.whatsapp_message | url_encode %}
+  {% assign action_url = 'https://wa.me/' | append: clean_phone | append: '?text=' | append: encoded_msg %}
+{% elsif block.settings.action_type == 'phone' %}
+  {% assign action_url = 'tel:' | append: block.settings.phone_number %}
+{% endif %}
+
+{% style %}
+  /* ── Wrapper ── */
+  .ai-floating-cta-{{ ai_gen_id }} {
+    display: block;
+    position: fixed;
+    z-index: 2147483640;
+    {% if block.settings.desktop_position == 'bottom-left' %}
+      bottom: {{ block.settings.desktop_offset_y }}px;
+      left:   {{ block.settings.desktop_offset_x }}px;
+    {% elsif block.settings.desktop_position == 'bottom-right' %}
+      bottom: {{ block.settings.desktop_offset_y }}px;
+      right:  {{ block.settings.desktop_offset_x }}px;
+    {% elsif block.settings.desktop_position == 'top-left' %}
+      top:  {{ block.settings.desktop_offset_y }}px;
+      left: {{ block.settings.desktop_offset_x }}px;
+    {% elsif block.settings.desktop_position == 'top-right' %}
+      top:   {{ block.settings.desktop_offset_y }}px;
+      right: {{ block.settings.desktop_offset_x }}px;
+    {% endif %}
+    {% if block.settings.enable_entrance_animation %}
+      opacity: 0;
+      transform: translateY(20px);
+      animation: ai-cta-entrance-{{ ai_gen_id }} 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.3s forwards;
+    {% endif %}
+  }
+
+  /* ── Button styling & Shape ── */
+  .ai-floating-cta-button-{{ ai_gen_id }} {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: {{ block.settings.icon_text_gap }}px;
+    background-color: {{ block.settings.background_color }};
+    color: {{ block.settings.text_color }};
+    border: {{ block.settings.border_width }}px solid {{ block.settings.border_color }};
+    font-size: {{ block.settings.font_size }}px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    box-shadow: 0 {{ block.settings.shadow_y }}px {{ block.settings.shadow_blur }}px {{ block.settings.shadow_spread }}px {{ block.settings.shadow_color }};
+    white-space: nowrap;
+    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1),
+                box-shadow 0.3s cubic-bezier(0.4,0,0.2,1),
+                background-color 0.2s ease;
+
+    /* Shape calculation */
+    {% if block.settings.button_shape == 'circle' %}
+      width: {{ block.settings.button_height }}px;
+      height: {{ block.settings.button_height }}px;
+      padding: 0;
+      border-radius: 50%;
+    {% elsif block.settings.button_shape == 'pill' %}
+      height: {{ block.settings.button_height }}px;
+      padding: 0 {{ block.settings.button_padding }}px;
+      border-radius: {{ block.settings.button_height }}px;
+      {% if block.settings.button_width > 0 %}
+        width: {{ block.settings.button_width }}px;
+      {% endif %}
+    {% elsif block.settings.button_shape == 'rounded_square' %}
+      height: {{ block.settings.button_height }}px;
+      padding: 0 {{ block.settings.button_padding }}px;
+      border-radius: {{ block.settings.custom_border_radius }}px;
+      {% if block.settings.button_width > 0 %}
+        width: {{ block.settings.button_width }}px;
+      {% endif %}
+    {% elsif block.settings.button_shape == 'sharp_square' %}
+      height: {{ block.settings.button_height }}px;
+      padding: 0 {{ block.settings.button_padding }}px;
+      border-radius: 0px;
+      {% if block.settings.button_width > 0 %}
+        width: {{ block.settings.button_width }}px;
+      {% endif %}
+    {% endif %}
+  }
+
+  /* ── Button hover ── */
+  .ai-floating-cta-button-{{ ai_gen_id }}:hover {
+    color: {{ block.settings.text_color }};
+    {% if block.settings.hover_animation == 'lift' %}
+      transform: translateY(-4px);
+      box-shadow: 0 {{ block.settings.shadow_y | plus: 8 }}px {{ block.settings.shadow_blur | plus: 8 }}px {{ block.settings.shadow_spread }}px {{ block.settings.shadow_color }};
+    {% elsif block.settings.hover_animation == 'scale' %}
+      transform: scale(1.06);
+    {% elsif block.settings.hover_animation == 'glow' %}
+      box-shadow: 0 {{ block.settings.shadow_y }}px {{ block.settings.shadow_blur | plus: 16 }}px {{ block.settings.shadow_spread | plus: 4 }}px {{ block.settings.shadow_color }};
+    {% elsif block.settings.hover_animation == 'shrink' %}
+      transform: scale(0.95);
+    {% elsif block.settings.hover_animation == 'tilt' %}
+      transform: rotate(-3deg) scale(1.04);
+    {% endif %}
+  }
+
+  /* ── Icon circle ── */
+  .ai-floating-cta-icon-circle-{{ ai_gen_id }} {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: {{ block.settings.icon_size | plus: 12 }}px;
+    height: {{ block.settings.icon_size | plus: 12 }}px;
+    background-color: {{ block.settings.icon_circle_color }};
+    border-radius: 50%;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  /* ── Icon element ── */
+  .ai-floating-cta-icon-{{ ai_gen_id }} {
+    width: {{ block.settings.icon_size }}px;
+    height: {{ block.settings.icon_size }}px;
+    color: {{ block.settings.icon_color }};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .ai-floating-cta-icon-{{ ai_gen_id }} svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .ai-floating-cta-custom-icon-{{ ai_gen_id }} {
+    width: {{ block.settings.icon_size }}px;
+    height: {{ block.settings.icon_size }}px;
+    object-fit: contain;
+  }
+
+  /* ── Speech Bubble Callout ── */
+  .ai-floating-callout-{{ ai_gen_id }} {
+    position: absolute;
+    bottom: calc(100% + 10px);
+    background: #ffffff;
+    color: #1a1a1a;
+    padding: 7px 12px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+    border: 1px solid #e5e7eb;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    text-decoration: none;
+    z-index: 10;
+    {% if block.settings.desktop_position contains 'right' %}
+      right: 0;
+    {% else %}
+      left: 0;
+    {% endif %}
+  }
+  .ai-floating-callout-close-{{ ai_gen_id }} {
+    cursor: pointer;
+    font-size: 16px;
+    color: #888888;
+    line-height: 1;
+  }
+  .ai-floating-callout-close-{{ ai_gen_id }}:hover {
+    color: #000000;
+  }
+
+  /* ════════════════════════════════════════
+     ICON ANIMATIONS (applied to the circle)
+     ════════════════════════════════════════ */
+  {% if block.settings.icon_animation != 'none' %}
+    .ai-floating-cta-icon-circle-{{ ai_gen_id }} {
+      {% case block.settings.icon_animation %}
+        {% when 'spin' %}
+          animation: ai-cta-spin-{{ ai_gen_id }} 2s linear infinite;
+        {% when 'spin-slow' %}
+          animation: ai-cta-spin-{{ ai_gen_id }} 4s linear infinite;
+        {% when 'pulse' %}
+          animation: ai-cta-pulse-{{ ai_gen_id }} 1.4s ease-in-out infinite;
+        {% when 'bounce' %}
+          animation: ai-cta-bounce-{{ ai_gen_id }} 1s ease infinite;
+        {% when 'shake' %}
+          animation: ai-cta-shake-{{ ai_gen_id }} 0.8s ease infinite;
+          animation-delay: 2s;
+        {% when 'ping' %}
+          animation: ai-cta-ping-{{ ai_gen_id }} 1.5s cubic-bezier(0,0,0.2,1) infinite;
+        {% when 'swing' %}
+          transform-origin: top center;
+          animation: ai-cta-swing-{{ ai_gen_id }} 1.2s ease-in-out infinite;
+        {% when 'flip' %}
+          animation: ai-cta-flip-{{ ai_gen_id }} 2s ease infinite;
+        {% when 'tada' %}
+          animation: ai-cta-tada-{{ ai_gen_id }} 1.2s ease infinite;
+          animation-delay: 2s;
+        {% when 'rubber' %}
+          animation: ai-cta-rubber-{{ ai_gen_id }} 1s ease infinite;
+        {% when 'jello' %}
+          animation: ai-cta-jello-{{ ai_gen_id }} 1s ease infinite;
+        {% when 'heartbeat' %}
+          animation: ai-cta-heartbeat-{{ ai_gen_id }} 1.3s ease-in-out infinite;
+        {% when 'flash' %}
+          animation: ai-cta-flash-{{ ai_gen_id }} 1.5s ease infinite;
+        {% when 'wobble' %}
+          animation: ai-cta-wobble-{{ ai_gen_id }} 1s ease infinite;
+      {% endcase %}
+    }
+  {% endif %}
+
+  /* ── Keyframes ── */
+  @keyframes ai-cta-entrance-{{ ai_gen_id }} {
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes ai-cta-spin-{{ ai_gen_id }} {
+    to { transform: rotate(360deg); }
+  }
+  @keyframes ai-cta-pulse-{{ ai_gen_id }} {
+    0%,100% { transform: scale(1); }
+    50%      { transform: scale(1.18); }
+  }
+  @keyframes ai-cta-bounce-{{ ai_gen_id }} {
+    0%,100% { transform: translateY(0); }
+    50%     { transform: translateY(-8px); }
+  }
+  @keyframes ai-cta-shake-{{ ai_gen_id }} {
+    0%,100% { transform: translateX(0); }
+    15%     { transform: translateX(-5px) rotate(-4deg); }
+    30%     { transform: translateX(5px)  rotate(4deg); }
+    45%     { transform: translateX(-4px) rotate(-2deg); }
+    60%     { transform: translateX(4px)  rotate(2deg); }
+    75%     { transform: translateX(-2px); }
+  }
+  @keyframes ai-cta-ping-{{ ai_gen_id }} {
+    0%    { transform: scale(1); opacity: 1; }
+    75%,100% { transform: scale(1.5); opacity: 0; }
+  }
+  @keyframes ai-cta-swing-{{ ai_gen_id }} {
+    0%,100% { transform: rotate(0deg); }
+    20%     { transform: rotate(15deg); }
+    40%     { transform: rotate(-10deg); }
+    60%     { transform: rotate(6deg); }
+    80%     { transform: rotate(-3deg); }
+  }
+  @keyframes ai-cta-flip-{{ ai_gen_id }} {
+    0%   { transform: perspective(400px) rotateY(0); }
+    40%  { transform: perspective(400px) rotateY(-180deg) scale(1.08); }
+    100% { transform: perspective(400px) rotateY(-360deg); }
+  }
+  @keyframes ai-cta-tada-{{ ai_gen_id }} {
+    0%  { transform: scale(1); }
+    10%,20% { transform: scale(0.9) rotate(-3deg); }
+    30%,50%,70%,90% { transform: scale(1.1) rotate(3deg); }
+    40%,60%,80% { transform: scale(1.1) rotate(-3deg); }
+    100% { transform: scale(1) rotate(0); }
+  }
+  @keyframes ai-cta-rubber-{{ ai_gen_id }} {
+    0%   { transform: scale(1,1); }
+    30%  { transform: scale(1.25,0.75); }
+    40%  { transform: scale(0.75,1.25); }
+    50%  { transform: scale(1.15,0.85); }
+    65%  { transform: scale(0.95,1.05); }
+    75%  { transform: scale(1.05,0.95); }
+    100% { transform: scale(1,1); }
+  }
+  @keyframes ai-cta-jello-{{ ai_gen_id }} {
+    0%,100% { transform: skewX(0) skewY(0); }
+    30%     { transform: skewX(-12.5deg) skewY(-12.5deg); }
+    40%     { transform: skewX(6.25deg)  skewY(6.25deg); }
+    50%     { transform: skewX(-3.125deg) skewY(-3.125deg); }
+    65%     { transform: skewX(1.5625deg) skewY(1.5625deg); }
+    75%     { transform: skewX(-0.78125deg) skewY(-0.78125deg); }
+  }
+  @keyframes ai-cta-heartbeat-{{ ai_gen_id }} {
+    0%,100% { transform: scale(1); }
+    14%     { transform: scale(1.2); }
+    28%     { transform: scale(1); }
+    42%     { transform: scale(1.2); }
+    70%     { transform: scale(1); }
+  }
+  @keyframes ai-cta-flash-{{ ai_gen_id }} {
+    0%,100%,50% { opacity: 1; }
+    25%,75%     { opacity: 0.2; }
+  }
+  @keyframes ai-cta-wobble-{{ ai_gen_id }} {
+    0%,100% { transform: translate(0,0) rotate(0deg); }
+    15%     { transform: translate(-8px,0) rotate(-5deg); }
+    30%     { transform: translate(6px,0)  rotate(3deg); }
+    45%     { transform: translate(-4px,0) rotate(-3deg); }
+    60%     { transform: translate(3px,0)  rotate(2deg); }
+    75%     { transform: translate(-2px,0) rotate(-1deg); }
+  }
+
+  /* ── Mobile ── */
+  @media screen and (max-width: 749px) {
+    .ai-floating-cta-{{ ai_gen_id }} {
+      {% if block.settings.mobile_position == 'bottom-left' %}
+        bottom: {{ block.settings.mobile_offset_y }}px; left: {{ block.settings.mobile_offset_x }}px; top: auto; right: auto;
+      {% elsif block.settings.mobile_position == 'bottom-right' %}
+        bottom: {{ block.settings.mobile_offset_y }}px; right: {{ block.settings.mobile_offset_x }}px; top: auto; left: auto;
+      {% elsif block.settings.mobile_position == 'top-left' %}
+        top: {{ block.settings.mobile_offset_y }}px; left: {{ block.settings.mobile_offset_x }}px; bottom: auto; right: auto;
+      {% elsif block.settings.mobile_position == 'top-right' %}
+        top: {{ block.settings.mobile_offset_y }}px; right: {{ block.settings.mobile_offset_x }}px; bottom: auto; left: auto;
+      {% elsif block.settings.mobile_position == 'bottom-center' %}
+        bottom: {{ block.settings.mobile_offset_y }}px; left: 50%; transform: translateX(-50%); top: auto; right: auto;
+      {% endif %}
+    }
+    {% if block.settings.button_shape != 'circle' %}
+      .ai-floating-cta-button-{{ ai_gen_id }} {
+        height:    {{ block.settings.button_height | times: 0.9 | round }}px;
+        padding:   0 {{ block.settings.button_padding | times: 0.8 | round }}px;
+        font-size: {{ block.settings.font_size | times: 0.9 | round }}px;
+      }
+    {% else %}
+      .ai-floating-cta-button-{{ ai_gen_id }} {
+        width:  {{ block.settings.button_height | times: 0.9 | round }}px;
+        height: {{ block.settings.button_height | times: 0.9 | round }}px;
+      }
+    {% endif %}
+    .ai-floating-cta-icon-circle-{{ ai_gen_id }} {
+      width:  {{ block.settings.icon_size | plus: 8 }}px;
+      height: {{ block.settings.icon_size | plus: 8 }}px;
+    }
+    .ai-floating-cta-icon-{{ ai_gen_id }},
+    .ai-floating-cta-custom-icon-{{ ai_gen_id }} {
+      width:  {{ block.settings.icon_size | times: 0.9 | round }}px;
+      height: {{ block.settings.icon_size | times: 0.9 | round }}px;
+    }
+  }
+
+  {% if block.settings.hide_on_drawer %}
+    body.overflow-hidden .ai-floating-cta-{{ ai_gen_id }},
+    body.overflow-hidden-tablet .ai-floating-cta-{{ ai_gen_id }},
+    body.overflow-hidden-desktop .ai-floating-cta-{{ ai_gen_id }},
+    body:has(.menu-open) .ai-floating-cta-{{ ai_gen_id }},
+    body:has(.menu-opening) .ai-floating-cta-{{ ai_gen_id }},
+    body:has(#Details-menu-drawer-container[open]) .ai-floating-cta-{{ ai_gen_id }},
+    body:has(cart-drawer.active) .ai-floating-cta-{{ ai_gen_id }} {
+      display: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+      z-index: -1 !important;
+    }
+  {% endif %}
+{% endstyle %}
+
+{% assign show_cta = block.settings.enable_section %}
+{% if block.settings.hide_on_cart and request.page_type == 'cart' %}
+  {% assign show_cta = false %}
+{% endif %}
+
+{% if show_cta %}
+  <div class="ai-floating-cta-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+    {% if block.settings.callout_bubble != blank %}
+      <a href="{{ action_url }}" target="_blank" rel="noopener noreferrer" class="ai-floating-callout-{{ ai_gen_id }}">
+        <span>{{ block.settings.callout_bubble }}</span>
+        <span class="ai-floating-callout-close-{{ ai_gen_id }}" onclick="event.preventDefault(); this.parentElement.style.display='none';">&times;</span>
       </a>
     {% endif %}
 
     <a
-      href="https://wa.me/{{ phone }}?text={{ message }}"
-      target="_blank"
-      rel="noopener noreferrer"
-      class="reel-whatsapp-btn {% if block.settings.enable_pulse %}reel-wa-pulse{% endif %}"
-      aria-label="Chat on WhatsApp"
+      href="{{ action_url }}"
+      {% if block.settings.action_type == 'whatsapp' or block.settings.open_new_tab %}target="_blank" rel="noopener noreferrer"{% endif %}
+      class="ai-floating-cta-button-{{ ai_gen_id }}"
+      aria-label="{{ block.settings.button_text | default: 'Floating Action Button' }}"
     >
-      <svg class="reel-whatsapp-icon" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path fill-rule="evenodd" clip-rule="evenodd" d="M16 2C8.268 2 2 8.268 2 16C2 18.72 2.776 21.268 4.12 23.428L2.736 28.572C2.632 28.956 2.972 29.308 3.36 29.216L8.68 27.952C10.82 29.248 13.328 30 16 30C23.732 30 30 23.732 30 16C30 8.268 23.732 2 16 2ZM11.664 9.472C11.396 8.872 11.12 8.86 10.864 8.848C10.652 8.84 10.412 8.84 10.172 8.84C9.932 8.84 9.544 8.928 9.216 9.284C8.888 9.64 7.96 10.512 7.96 12.288C7.96 14.064 9.252 15.78 9.432 16.024C9.612 16.268 11.944 20.048 15.632 21.504C18.496 22.636 19.34 22.464 19.98 22.388C20.916 22.28 21.996 21.668 22.428 20.468C22.86 19.268 22.86 18.236 22.732 18.024C22.604 17.812 22.244 17.688 21.716 17.424C21.188 17.16 18.604 15.888 18.124 15.712C17.644 15.536 17.296 15.448 16.948 15.976C16.6 16.504 15.604 17.688 15.3 18.04C14.996 18.392 14.692 18.436 14.164 18.172C13.636 17.908 11.936 17.348 9.92 15.552C8.348 14.152 7.288 12.428 6.984 11.9C6.68 11.372 6.952 11.088 7.216 10.824C7.452 10.588 7.744 10.208 8.008 9.904C8.272 9.6 8.36 9.384 8.536 9.028C8.712 8.672 8.624 8.36 8.492 8.096C8.36 7.832 7.428 5.372 6.992 4.38C6.568 3.416 6.136 3.548 5.816 3.564L5.032 3.58C4.768 3.58 4.336 3.684 3.968 4.084C3.6 4.484 2.56 5.464 2.56 7.456C2.56 9.448 4.012 11.372 4.212 11.644C4.412 11.916 7.032 16.148 11.188 17.784C14.408 19.052 15.356 18.856 16.076 18.772C17.128 18.652 18.34 17.964 18.824 16.616C19.308 15.268 19.308 14.108 19.164 13.868C19.02 13.628 18.616 13.488 18.024 13.192C17.432 12.896 14.528 11.464 13.988 11.264C13.448 11.064 13.056 10.964 12.664 11.56C12.272 12.156 11.152 13.488 10.812 13.884C10.472 14.28 10.128 14.332 9.536 14.036C8.944 13.74 7.032 13.112 4.76 11.088C2.992 9.516 1.796 7.572 1.456 6.98C1.116 6.388 1.42 6.068 1.716 5.772C1.98 5.508 2.308 5.08 2.604 4.74C2.9 4.4 3.004 4.156 3.2 3.756C3.396 3.356 3.3 3.004 3.152 2.708C3.004 2.412 1.956 -0.344 1.468 -1.452C0.992 -2.532 0.504 -2.384 0.144 -2.368L-0.736 -2.352C-1.032 -2.352 -1.516 -2.236 -1.932 -1.784C-2.348 -1.332 -3.516 -0.232 -3.516 1.996C-3.516 4.224 -1.884 6.38 -1.66 6.684C-1.436 6.988 1.504 11.736 6.168 13.572C9.78 14.996 10.844 14.776 11.652 14.68C12.832 14.544 14.192 13.772 14.736 12.26C15.28 10.748 15.28 9.448 15.12 9.18C14.96 8.912 14.504 8.756 13.84 8.424C13.176 8.092 9.916 6.484 9.308 6.26C8.7 6.036 8.26 5.924 7.82 6.592C7.38 7.26 6.12 8.756 5.736 9.2C5.352 9.644 4.968 9.704 4.304 9.372C3.64 9.04 1.492 8.332 -1.056 6.06C-3.044 4.292 -4.388 2.112 -4.772 1.448C-5.156 0.784 -4.812 0.428 -4.48 0.096C-4.18 -0.2 -3.816 -0.68 -3.48 -1.064C-3.144 -1.448 -3.028 -1.72 -2.808 -2.172C-2.588 -2.624 -2.696 -3.02 -2.864 -3.352C-3.032 -3.684 -4.208 -6.776 -4.756 -8.008C-5.288 -9.208 -5.836 -9.044 -6.24 -9.028Z" fill="currentColor"/>
-        <path d="M25.352 6.648C22.864 4.156 19.552 2.784 16.024 2.784C8.72 2.784 2.784 8.72 2.784 16.024C2.784 18.36 3.392 20.64 4.552 22.656L2.832 28.936L9.264 27.248C11.216 28.312 13.432 28.872 16.024 28.872C23.328 28.872 29.264 22.936 29.264 15.632C29.256 12.104 27.848 8.744 25.352 6.648ZM16.024 26.68C13.72 26.68 11.752 26.064 10.024 25.04L9.616 24.792L5.8 25.792L6.816 22.072L6.544 21.64C5.416 19.848 4.824 17.768 4.824 15.632C4.824 9.456 9.848 4.432 16.024 4.432C19.016 4.432 21.824 5.592 23.936 7.704C26.048 9.816 27.216 12.632 27.216 15.624C27.216 21.808 22.192 26.68 16.024 26.68ZM22.152 18.912C21.816 18.744 20.168 17.928 19.864 17.816C19.56 17.704 19.336 17.648 19.112 17.984C18.888 18.32 18.256 19.064 18.064 19.288C17.872 19.512 17.68 19.544 17.344 19.376C17.008 19.208 15.928 18.856 14.648 17.712C13.648 16.824 12.968 15.728 12.776 15.392C12.584 15.056 12.752 14.88 12.92 14.712C13.072 14.56 13.256 14.32 13.424 14.128C13.592 13.936 13.648 13.8 13.76 13.576C13.872 13.352 13.816 13.152 13.736 12.984C13.656 12.816 13.04 11.296 12.784 10.68C12.536 10.08 12.28 10.16 12.088 10.152C11.904 10.144 11.688 10.144 11.472 10.144C11.256 10.144 10.904 10.224 10.608 10.544C10.312 10.864 9.472 11.648 9.472 13.24C9.472 14.832 10.632 16.368 10.792 16.592C10.952 16.816 13.08 20.104 16.344 21.512C17.12 21.848 17.728 22.048 18.2 22.2C18.976 22.448 19.68 22.416 20.24 22.328C20.864 22.232 22.16 21.544 22.432 20.776C22.704 20.008 22.704 19.352 22.624 19.216C22.544 19.08 22.32 18.992 22.152 18.912Z" fill="white"/>
-      </svg>
-
-      {% if block.settings.button_text != blank %}
-        <span class="reel-whatsapp-label">{{ block.settings.button_text }}</span>
+      <div class="ai-floating-cta-icon-circle-{{ ai_gen_id }}">
+        {% if block.settings.custom_icon %}
+          <img
+            src="{{ block.settings.custom_icon | image_url: width: 100 }}"
+            alt=""
+            class="ai-floating-cta-custom-icon-{{ ai_gen_id }}"
+            loading="lazy"
+          >
+        {% else %}
+          <div class="ai-floating-cta-icon-{{ ai_gen_id }}">
+            {% case block.settings.icon_type %}
+              {% when 'whatsapp' %}
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2zm5.78 14.16c-.24.68-1.39 1.3-1.92 1.38-.51.08-1.18.11-3.41-.81-2.85-1.18-4.66-4.1-4.8-4.29-.14-.19-1.16-1.54-1.16-2.93 0-1.39.73-2.07.99-2.35.26-.28.57-.35.76-.35.19 0 .38 0 .55.01.18.01.42-.07.66.5.24.58.83 2.02.9 2.17.07.15.12.33.02.53-.1.2-.15.33-.3.5-.15.18-.31.4-.45.54-.15.15-.3.31-.13.61.17.3.77 1.27 1.65 2.05 1.13 1.01 2.09 1.32 2.39 1.47.3.15.48.13.65-.07.18-.2.76-.89.96-1.19.2-.3.41-.25.68-.15.28.1 1.76.83 2.06.98.3.15.5.22.58.35.07.12.07.72-.17 1.4z"/></svg>
+              {% when 'phone' %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+              {% when 'message' %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              {% when 'cart' %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+              {% when 'gift' %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+              {% when 'fire' %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+              {% when 'percent' %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+              {% when 'rocket' %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>
+              {% when 'star' %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              {% when 'tag' %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+              {% when 'video' %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+              {% when 'mail' %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              {% when 'heart' %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+              {% when 'lightning' %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              {% when 'shield' %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              {% when 'gem' %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 18 3 22 9 12 22 2 9 6 3"/><polyline points="2 9 12 22 22 9"/><line x1="6" y1="3" x2="12" y2="22"/><line x1="18" y1="3" x2="12" y2="22"/><line x1="2" y1="9" x2="22" y2="9"/></svg>
+              {% when 'crown' %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20"/><path d="m3 9 4 4 5-8 5 8 4-4v8H3V9z"/></svg>
+              {% when 'award' %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
+              {% when 'truck' %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+              {% else %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            {% endcase %}
+          </div>
+        {% endif %}
+      </div>
+      {% if block.settings.button_shape != 'circle' and block.settings.button_text != blank %}
+        <span>{{ block.settings.button_text }}</span>
       {% endif %}
     </a>
   </div>
-
-  <style>
-    .reel-whatsapp-float-container {
-      position: fixed;
-      bottom: var(--wa-bottom, 24px);
-      z-index: 2147483640;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    }
-    .reel-whatsapp-pos-right {
-      right: var(--wa-side, 24px);
-      left: auto;
-      align-items: flex-end;
-    }
-    .reel-whatsapp-pos-left {
-      left: var(--wa-side, 24px);
-      right: auto;
-      align-items: flex-start;
-    }
-
-    .reel-whatsapp-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      background-color: var(--wa-bg, #25D366);
-      color: var(--wa-text, #ffffff);
-      padding: 12px 18px;
-      border-radius: 50px;
-      text-decoration: none;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), 0 2px 6px rgba(37, 211, 102, 0.3);
-      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-      cursor: pointer;
-    }
-    .reel-whatsapp-btn:hover {
-      transform: translateY(-3px) scale(1.04);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28), 0 4px 10px rgba(37, 211, 102, 0.4);
-      color: var(--wa-text, #ffffff);
-    }
-    .reel-whatsapp-icon {
-      width: 26px;
-      height: 26px;
-      flex-shrink: 0;
-    }
-    .reel-whatsapp-label {
-      font-size: 14px;
-      font-weight: 600;
-      letter-spacing: 0.2px;
-      white-space: nowrap;
-    }
-
-    /* Callout Tooltip */
-    .reel-whatsapp-callout {
-      background: #ffffff;
-      color: #1a1a1a;
-      padding: 8px 14px;
-      border-radius: 12px;
-      font-size: 13px;
-      font-weight: 500;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.12);
-      border: 1px solid #eeeeee;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      text-decoration: none;
-      animation: reelWaFadeIn 0.4s ease forwards;
-    }
-    .reel-whatsapp-callout-close {
-      cursor: pointer;
-      font-size: 16px;
-      color: #888888;
-      padding: 0 2px;
-      line-height: 1;
-    }
-    .reel-whatsapp-callout-close:hover {
-      color: #1a1a1a;
-    }
-
-    /* Pulse Effect */
-    .reel-wa-pulse {
-      animation: reelWaPulseAnim 2s infinite;
-    }
-    @keyframes reelWaPulseAnim {
-      0% {
-        box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.6), 0 4px 16px rgba(0, 0, 0, 0.2);
-      }
-      70% {
-        box-shadow: 0 0 0 14px rgba(37, 211, 102, 0), 0 4px 16px rgba(0, 0, 0, 0.2);
-      }
-      100% {
-        box-shadow: 0 0 0 0 rgba(37, 211, 102, 0), 0 4px 16px rgba(0, 0, 0, 0.2);
-      }
-    }
-    @keyframes reelWaFadeIn {
-      from { opacity: 0; transform: translateY(6px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    @media (max-width: 749px) {
-      .reel-whatsapp-label {
-        display: none;
-      }
-      .reel-whatsapp-btn {
-        padding: 12px;
-        border-radius: 50%;
-      }
-      .reel-whatsapp-icon {
-        width: 28px;
-        height: 28px;
-      }
-    }
-  </style>
 {% endif %}
 
 {% schema %}
 {
-  "name": "WhatsApp Float Button",
+  "name": "Floating Action / WhatsApp",
   "target": "section",
   "settings": [
     {
+      "type": "checkbox",
+      "id": "enable_section",
+      "label": "Enable floating button",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "hide_on_cart",
+      "label": "Hide on cart page",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "hide_on_drawer",
+      "label": "Hide when drawers/menus are open",
+      "default": false
+    },
+    {
       "type": "header",
-      "content": "📱 WhatsApp Configuration"
+      "content": "⚡ Action Type"
+    },
+    {
+      "type": "select",
+      "id": "action_type",
+      "label": "Action Type",
+      "options": [
+        { "value": "whatsapp", "label": "💬 WhatsApp Instant Chat" },
+        { "value": "url",      "label": "🔗 Storefront URL / Page Link" },
+        { "value": "phone",    "label": "📞 Phone Call" }
+      ],
+      "default": "whatsapp"
+    },
+    {
+      "type": "text",
+      "id": "whatsapp_phone",
+      "label": "WhatsApp Phone Number (with Country Code)",
+      "default": "+91 99478 77747",
+      "info": "Used when Action Type is WhatsApp."
+    },
+    {
+      "type": "text",
+      "id": "whatsapp_message",
+      "label": "WhatsApp Pre-filled Message",
+      "default": "Hi! I have a question about your products."
+    },
+    {
+      "type": "url",
+      "id": "button_url",
+      "label": "Custom URL (when Action Type is URL)"
+    },
+    {
+      "type": "checkbox",
+      "id": "open_new_tab",
+      "label": "Open link in new tab",
+      "default": false
     },
     {
       "type": "text",
       "id": "phone_number",
-      "label": "WhatsApp Phone Number (with Country Code)",
-      "default": "+91 99478 77747",
-      "info": "Example: +91 99478 77747 or 15551234567"
+      "label": "Phone Number for Direct Call",
+      "default": "+91 99478 77747"
     },
     {
-      "type": "text",
-      "id": "default_message",
-      "label": "Pre-filled Chat Message",
-      "default": "Hi! I have a question about your products.",
-      "info": "Automatic greeting message when customer clicks to chat."
+      "type": "header",
+      "content": "🔘 Shape & Layout"
+    },
+    {
+      "type": "select",
+      "id": "button_shape",
+      "label": "Button Shape",
+      "options": [
+        { "value": "circle",         "label": "🔘 Circle (Icon Only)" },
+        { "value": "pill",           "label": "💊 Pill (Rounded with Text)" },
+        { "value": "rounded_square", "label": "⏹️ Rounded Rectangle" },
+        { "value": "sharp_square",   "label": "📐 Sharp Rectangle" }
+      ],
+      "default": "pill"
     },
     {
       "type": "text",
       "id": "button_text",
-      "label": "Button Label (Desktop)",
-      "default": "Chat on WhatsApp",
-      "info": "Leave empty for icon-only circle button."
+      "label": "Button Text (for Pill & Rectangle)",
+      "default": "Chat with Us"
     },
     {
       "type": "text",
-      "id": "callout_text",
-      "label": "Popup Welcome Bubble (Optional)",
+      "id": "callout_bubble",
+      "label": "Welcome Speech Bubble (Optional)",
       "default": "👋 Need help? Chat with us live!",
-      "info": "Floating speech bubble above the button. Leave empty to hide."
+      "info": "Popup callout above button. Leave empty to hide."
+    },
+    {
+      "type": "range",
+      "id": "button_height",
+      "label": "Button height / Diameter",
+      "min": 36,
+      "max": 80,
+      "step": 2,
+      "unit": "px",
+      "default": 54
+    },
+    {
+      "type": "range",
+      "id": "button_width",
+      "label": "Button width (Pill / Rectangle)",
+      "min": 0,
+      "max": 350,
+      "step": 10,
+      "unit": "px",
+      "default": 0,
+      "info": "0 for automatic auto-sizing"
+    },
+    {
+      "type": "range",
+      "id": "button_padding",
+      "label": "Horizontal padding",
+      "min": 12,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "custom_border_radius",
+      "label": "Corner Radius (for Rounded Rectangle)",
+      "min": 0,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "default": 12
     },
     {
       "type": "header",
-      "content": "🎨 Positioning & Styling"
+      "content": "🎨 Icon & Animations"
     },
     {
       "type": "select",
-      "id": "position",
-      "label": "Corner Position",
+      "id": "icon_type",
+      "label": "Icon",
       "options": [
-        { "value": "right", "label": "Bottom Right" },
-        { "value": "left", "label": "Bottom Left" }
+        { "value": "whatsapp",  "label": "💬 WhatsApp" },
+        { "value": "message",   "label": "💭 Message / Chat" },
+        { "value": "phone",     "label": "📞 Phone" },
+        { "value": "cart",      "label": "🛒 Cart" },
+        { "value": "gift",      "label": "🎁 Gift" },
+        { "value": "fire",      "label": "🔥 Fire" },
+        { "value": "percent",   "label": "% Percent Discount" },
+        { "value": "rocket",    "label": "🚀 Rocket" },
+        { "value": "star",      "label": "⭐ Star" },
+        { "value": "tag",       "label": "🏷 Tag" },
+        { "value": "video",     "label": "🎬 Video" },
+        { "value": "mail",      "label": "✉ Mail" },
+        { "value": "heart",     "label": "❤ Heart" },
+        { "value": "lightning", "label": "⚡ Lightning" },
+        { "value": "shield",    "label": "🛡 Shield" },
+        { "value": "gem",       "label": "💎 Gem" },
+        { "value": "crown",     "label": "👑 Crown" },
+        { "value": "award",     "label": "🏆 Award" },
+        { "value": "truck",     "label": "🚚 Truck / Shipping" }
       ],
-      "default": "right"
+      "default": "whatsapp"
+    },
+    {
+      "type": "image_picker",
+      "id": "custom_icon",
+      "label": "Custom Icon Image (Optional)",
+      "info": "Overrides vector icon if uploaded"
+    },
+    {
+      "type": "select",
+      "id": "icon_animation",
+      "label": "Icon Animation",
+      "options": [
+        { "value": "none",      "label": "None" },
+        { "value": "pulse",     "label": "Pulse / Scale" },
+        { "value": "bounce",    "label": "Bounce" },
+        { "value": "shake",     "label": "Shake (periodic)" },
+        { "value": "heartbeat", "label": "Heartbeat" },
+        { "value": "tada",      "label": "Tada (attention)" },
+        { "value": "rubber",    "label": "Rubber Band" },
+        { "value": "jello",     "label": "Jello" },
+        { "value": "swing",     "label": "Swing" },
+        { "value": "flip",      "label": "Flip 3-D" },
+        { "value": "ping",      "label": "Ping / Ripple" },
+        { "value": "flash",     "label": "Flash" },
+        { "value": "spin",      "label": "Spin (fast)" },
+        { "value": "spin-slow", "label": "Spin (slow)" },
+        { "value": "wobble",    "label": "Wobble" }
+      ],
+      "default": "pulse"
+    },
+    {
+      "type": "range",
+      "id": "icon_size",
+      "label": "Icon size",
+      "min": 16,
+      "max": 38,
+      "step": 2,
+      "unit": "px",
+      "default": 24
+    },
+    {
+      "type": "range",
+      "id": "icon_text_gap",
+      "label": "Gap between icon and text",
+      "min": 4,
+      "max": 20,
+      "step": 2,
+      "unit": "px",
+      "default": 10
+    },
+    {
+      "type": "header",
+      "content": "🎨 Colors & Styling"
     },
     {
       "type": "color",
-      "id": "bg_color",
-      "label": "Button Background Color",
+      "id": "background_color",
+      "label": "Button Background",
       "default": "#25D366"
     },
     {
       "type": "color",
       "id": "text_color",
-      "label": "Icon & Text Color",
-      "default": "#ffffff"
+      "label": "Text Color",
+      "default": "#FFFFFF"
+    },
+    {
+      "type": "color",
+      "id": "icon_color",
+      "label": "Icon Color",
+      "default": "#FFFFFF"
+    },
+    {
+      "type": "color",
+      "id": "icon_circle_color",
+      "label": "Icon Circle Background",
+      "default": "rgba(255, 255, 255, 0.2)"
+    },
+    {
+      "type": "color",
+      "id": "border_color",
+      "label": "Border Color",
+      "default": "#25D366"
+    },
+    {
+      "type": "range",
+      "id": "border_width",
+      "label": "Border width",
+      "min": 0,
+      "max": 4,
+      "step": 1,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "font_size",
+      "label": "Font size",
+      "min": 12,
+      "max": 22,
+      "step": 1,
+      "unit": "px",
+      "default": 15
+    },
+    {
+      "type": "header",
+      "content": "Shadow"
+    },
+    {
+      "type": "color",
+      "id": "shadow_color",
+      "label": "Shadow Color",
+      "default": "rgba(0, 0, 0, 0.2)"
+    },
+    {
+      "type": "range",
+      "id": "shadow_y",
+      "label": "Vertical offset",
+      "min": 0,
+      "max": 20,
+      "step": 2,
+      "unit": "px",
+      "default": 6
+    },
+    {
+      "type": "range",
+      "id": "shadow_blur",
+      "label": "Blur",
+      "min": 0,
+      "max": 40,
+      "step": 4,
+      "unit": "px",
+      "default": 18
+    },
+    {
+      "type": "range",
+      "id": "shadow_spread",
+      "label": "Spread",
+      "min": -10,
+      "max": 10,
+      "step": 2,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "🖥️ Desktop Position"
+    },
+    {
+      "type": "select",
+      "id": "desktop_position",
+      "label": "Position",
+      "options": [
+        { "value": "bottom-right", "label": "Bottom Right" },
+        { "value": "bottom-left",  "label": "Bottom Left" },
+        { "value": "top-right",    "label": "Top Right" },
+        { "value": "top-left",     "label": "Top Left" }
+      ],
+      "default": "bottom-right"
+    },
+    {
+      "type": "range",
+      "id": "desktop_offset_x",
+      "label": "Horizontal Offset (px)",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "default": 24
+    },
+    {
+      "type": "range",
+      "id": "desktop_offset_y",
+      "label": "Vertical Offset (px)",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "default": 24
+    },
+    {
+      "type": "header",
+      "content": "📱 Mobile Position"
+    },
+    {
+      "type": "select",
+      "id": "mobile_position",
+      "label": "Position",
+      "options": [
+        { "value": "bottom-right",  "label": "Bottom Right" },
+        { "value": "bottom-left",   "label": "Bottom Left" },
+        { "value": "bottom-center", "label": "Bottom Center" },
+        { "value": "top-right",     "label": "Top Right" },
+        { "value": "top-left",      "label": "Top Left" }
+      ],
+      "default": "bottom-right"
+    },
+    {
+      "type": "range",
+      "id": "mobile_offset_x",
+      "label": "Horizontal Offset (px)",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "mobile_offset_y",
+      "label": "Vertical Offset (px)",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "header",
+      "content": "✨ Animations"
+    },
+    {
+      "type": "select",
+      "id": "hover_animation",
+      "label": "Button Hover Effect",
+      "options": [
+        { "value": "none",   "label": "None" },
+        { "value": "lift",   "label": "Lift (Floating)" },
+        { "value": "scale",  "label": "Scale Up" },
+        { "value": "shrink", "label": "Scale Down" },
+        { "value": "glow",   "label": "Glow" },
+        { "value": "tilt",   "label": "Tilt" }
+      ],
+      "default": "lift"
     },
     {
       "type": "checkbox",
-      "id": "enable_pulse",
-      "label": "Enable Glowing Pulse Animation",
+      "id": "enable_entrance_animation",
+      "label": "Enable Entrance Animation",
       "default": true
-    },
-    {
-      "type": "range",
-      "id": "bottom_offset",
-      "label": "Bottom Distance (px)",
-      "min": 10,
-      "max": 100,
-      "step": 2,
-      "default": 24
-    },
-    {
-      "type": "range",
-      "id": "side_offset",
-      "label": "Side Distance (px)",
-      "min": 10,
-      "max": 100,
-      "step": 2,
-      "default": 24
     }
   ]
 }
