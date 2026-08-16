@@ -107,6 +107,11 @@ export const action = async ({ request }) => {
       returnUrl,
     });
   } catch (e) {
+    // If it's a Remix redirect Response (which billing.request uses to send users to the approval page), rethrow it!
+    if (e instanceof Response) {
+      throw e;
+    }
+
     console.warn("Shopify Partner Billing API Note:", e?.message || e);
     const errMessage = e?.errorData?.map((err) => err.message).join(", ") || e?.message || "";
 
