@@ -99,6 +99,7 @@ export const action = async ({ request }) => {
         plans: [LIFETIME_PLAN, MONTHLY_PLAN],
         isTest: true,
       });
+      // Cancel monthly subscriptions
       if (billingCheck.appSubscriptions?.length > 0) {
         await billing.cancel({
           subscriptionId: billingCheck.appSubscriptions[0].id,
@@ -106,6 +107,8 @@ export const action = async ({ request }) => {
           prorate: true,
         });
       }
+      // Note: one-time lifetime purchases cannot be cancelled via API.
+      // We only reset the metafield flag — the charge itself remains.
     } catch (e) {}
 
     // Reset store metafields back to Free
@@ -257,7 +260,13 @@ export default function Pricing() {
                     >
                       🔄 Sync Pro Status to Storefront
                     </Button>
-                    <Button tone="critical" onClick={handleCancel}>Switch back to Free Plan</Button>
+                    {isLifetimeActive ? (
+                      <Text as="p" tone="subdued" variant="bodySm">
+                        🔒 Lifetime access is permanent and cannot be cancelled.
+                      </Text>
+                    ) : (
+                      <Button tone="critical" onClick={handleCancel}>Switch back to Free Plan</Button>
+                    )}
                   </InlineStack>
                 </Box>
               </Banner>
