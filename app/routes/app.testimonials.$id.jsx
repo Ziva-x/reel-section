@@ -142,18 +142,29 @@ export default function TestimonialForm() {
   const isDeleting = nav.state === "submitting" && nav.formData?.get("_action") === "delete";
 
   const [formState, setFormState] = useState(
-    testimonial || {
-      videoUrl: "",
-      webmUrl: "",
-      posterUrl: "",
-      customerName: "",
-      customerRole: "",
-      reviewText: "",
-      rating: 5,
-      autoplay: true,
-      verified: true,
-      productHandle: "",
-    }
+    testimonial
+      ? {
+          ...testimonial,
+          videoUrl: testimonial.videoUrl || "",
+          webmUrl: testimonial.webmUrl === "null" || !testimonial.webmUrl ? "" : testimonial.webmUrl,
+          posterUrl: testimonial.posterUrl === "null" || !testimonial.posterUrl ? "" : testimonial.posterUrl,
+          customerName: testimonial.customerName || "",
+          customerRole: testimonial.customerRole || "",
+          reviewText: testimonial.reviewText || "",
+          productHandle: testimonial.productHandle === "null" || !testimonial.productHandle ? "" : testimonial.productHandle,
+        }
+      : {
+          videoUrl: "",
+          webmUrl: "",
+          posterUrl: "",
+          customerName: "",
+          customerRole: "",
+          reviewText: "",
+          rating: 5,
+          autoplay: true,
+          verified: true,
+          productHandle: "",
+        }
   );
 
   const [showProLockModal, setShowProLockModal] = useState(false);
@@ -194,11 +205,18 @@ export default function TestimonialForm() {
             <Card>
               <BlockStack gap="400">
                 <Text variant="headingMd" as="h3">🎬 Video Media</Text>
+                
+                <Banner tone="warning">
+                  <p>
+                    <strong>⚡ Speed & Performance Tip:</strong> Keep video file sizes <strong>below 10 MB</strong> (ideally 2–8 MB compressed MP4/WebM). Uploading large video files will slow down your store's page loading speed and mobile conversions.
+                  </p>
+                </Banner>
+
                 <TextField
                   label="Video URL (MP4 / WebM / MOV / All Formats)"
                   value={formState.videoUrl}
                   onChange={(val) => setFormState({ ...formState, videoUrl: val })}
-                  helpText="Direct Shopify CDN link. Upload in Shopify Admin → Settings → Files (or Content → Files). Max 100 MB."
+                  helpText="Direct Shopify CDN link. Upload in Shopify Admin → Settings → Files (or Content → Files). Keep below 10 MB for fast page loading."
                   autoComplete="off"
                   error={actionData?.error?.includes("Video") ? actionData.error : undefined}
                 />
