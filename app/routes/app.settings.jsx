@@ -97,7 +97,7 @@ export default function Settings() {
 
   const cleanStoreName = shop.replace(".myshopify.com", "");
   const appsSettingsUrl = `https://admin.shopify.com/store/${cleanStoreName}/settings/apps`;
-  const supportMailUrl = `mailto:support@monkeygarage.io?subject=Support%20Request%20-%20Reel%20Section%20(${encodeURIComponent(shop)})&body=Hi%20Reel%20Section%20Support%20Team%2C%0A%0AStore%3A%20${encodeURIComponent(shop)}%0A%0AI%20need%20help%20with%3A%20`;
+  const supportMailUrl = `mailto:support@zxtysix.com?subject=Support%20Request%20-%20Reel%20Section%20(${encodeURIComponent(shop)})&body=Hi%20Reel%20Section%20Support%20Team%2C%0A%0AStore%3A%20${encodeURIComponent(shop)}%0A%0AI%20need%20help%20with%3A%20`;
 
   const handleSendFeedback = () => {
     if (!feedbackText.trim()) return;
@@ -234,8 +234,8 @@ export default function Settings() {
                 <Divider />
                 <BlockStack gap="200">
                   <InlineStack align="space-between">
-                    <Text variant="bodySm" tone="subdued">Studio:</Text>
-                    <Text variant="bodySm" fontWeight="semibold">MonkeyGarage</Text>
+                    <Text variant="bodySm" tone="subdued">Company / Studio:</Text>
+                    <Text variant="bodySm" fontWeight="semibold">ZXTYSIX LLP</Text>
                   </InlineStack>
                   <InlineStack align="space-between">
                     <Text variant="bodySm" tone="subdued">App Name:</Text>
@@ -358,7 +358,7 @@ export default function Settings() {
                       fullWidth
                       url={supportMailUrl}
                     >
-                      ✉️ Mail Us (support@monkeygarage.io)
+                      ✉️ Mail Us (support@zxtysix.com)
                     </Button>
                   </BlockStack>
                 </Box>

@@ -97,7 +97,7 @@ export default function FeedbackAdmin() {
   return (
     <Page
       title="👨‍💻 Developer Support & Complaints Hub"
-      subtitle="Private master portal for MonkeyGarage engineering"
+      subtitle="Private master portal for ZXTYSIX LLP engineering"
       backAction={{ content: "Settings", onAction: () => navigate("/app/settings") }}
     >
       <Layout>
