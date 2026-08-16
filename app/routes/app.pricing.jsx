@@ -347,12 +347,12 @@ export default function Pricing() {
                         </BlockStack>
                         <Divider />
                         <List>
-                          <List.Item>✅ <strong>1,000 Video Views / month</strong></List.Item>
+                          <List.Item>✅ 1,000 video views per month</List.Item>
                           <List.Item>✅ Unlimited video uploads</List.Item>
                           <List.Item>✅ Simultaneous in-view autoplay</List.Item>
                           <List.Item>✅ HD auto-first-frame capture</List.Item>
-                          <List.Item>✅ Carousel & Grid layouts</List.Item>
-                          <List.Item>⚠️ <em>Pauses at 1,000 views until next month</em></List.Item>
+                          <List.Item>✅ Carousel and Grid layouts</List.Item>
+                          <List.Item>⚠️ Pauses at 1,000 views until next month</List.Item>
                         </List>
                       </BlockStack>
 
@@ -395,11 +395,11 @@ export default function Pricing() {
                         </BlockStack>
                         <Divider />
                         <List>
-                          <List.Item>✅ <strong>Unlimited video views</strong></List.Item>
-                          <List.Item>✅ <strong>Click-to-Shop Liquid Glass Product Buy Tag</strong></List.Item>
-                          <List.Item>✅ <strong>Interactive Card Hover Glow</strong></List.Item>
-                          <List.Item>✅ <strong>Custom Badge Branding</strong></List.Item>
-                          <List.Item>✅ <strong>Direct WhatsApp support 24/7</strong></List.Item>
+                          <List.Item>✅ Unlimited video views</List.Item>
+                          <List.Item>✅ Click-to-Shop product buy tags</List.Item>
+                          <List.Item>✅ Interactive card hover glow</List.Item>
+                          <List.Item>✅ Custom badge branding</List.Item>
+                          <List.Item>✅ Direct WhatsApp support 24/7</List.Item>
                           <List.Item>✅ Cancel anytime with 1-click</List.Item>
                         </List>
                       </BlockStack>
@@ -437,12 +437,12 @@ export default function Pricing() {
                         </BlockStack>
                         <Divider />
                         <List>
-                          <List.Item>✅ <strong>Everything in Monthly Pro UNLOCKED</strong></List.Item>
-                          <List.Item>✅ <strong>Unlimited video views forever</strong></List.Item>
-                          <List.Item>✅ <strong>Click-to-Shop Liquid Glass Product Tags</strong></List.Item>
-                          <List.Item>✅ <strong>Pay once — no monthly charges ever</strong></List.Item>
-                          <List.Item>✅ <strong>Direct WhatsApp support 24/7</strong></List.Item>
-                          <List.Item>✅ <strong>All future features & updates included</strong></List.Item>
+                          <List.Item>✅ Everything in Monthly Pro</List.Item>
+                          <List.Item>✅ Unlimited video views forever</List.Item>
+                          <List.Item>✅ Click-to-Shop product buy tags</List.Item>
+                          <List.Item>✅ Pay once, no monthly charges ever</List.Item>
+                          <List.Item>✅ Direct WhatsApp support 24/7</List.Item>
+                          <List.Item>✅ All future features and updates included</List.Item>
                         </List>
                       </BlockStack>
 
