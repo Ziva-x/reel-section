@@ -238,6 +238,15 @@ export default function Settings() {
                     <Text variant="bodySm" tone="subdued">System Status:</Text>
                     <Badge tone="success">Operational</Badge>
                   </InlineStack>
+                  <Divider />
+                  <InlineStack align="end">
+                    <Button
+                      variant="plain"
+                      onClick={() => navigate("/app/feedback-admin")}
+                    >
+                      🔒 View Merchant Submissions
+                    </Button>
+                  </InlineStack>
                 </BlockStack>
               </BlockStack>
             </Card>
