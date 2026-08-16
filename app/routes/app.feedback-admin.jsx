@@ -17,6 +17,7 @@ import {
   Banner,
   Divider,
   Tabs,
+  Modal,
 } from "@shopify/polaris";
 import prisma from "../db.server";
 import { authenticate } from "../shopify.server";
@@ -30,18 +31,35 @@ export const action = async ({ request }) => {
   await authenticate.admin(request);
   const formData = await request.formData();
   const passcode = formData.get("passcode");
+  const actionType = formData.get("_action");
 
   if (passcode !== "monkeygarage") {
     return json({ success: false, error: "Incorrect master passcode. Access denied." });
   }
 
   try {
+    // Delete single submission
+    if (actionType === "delete") {
+      const id = parseInt(formData.get("id"), 10);
+      if (id) {
+        await prisma.feedback.delete({
+          where: { id },
+        });
+      }
+    }
+
+    // Delete all submissions
+    if (actionType === "delete_all") {
+      await prisma.feedback.deleteMany({});
+    }
+
+    // Return fresh data list
     const feedback = await prisma.feedback.findMany({
       orderBy: { createdAt: "desc" },
     });
-    return json({ success: true, feedback });
+    return json({ success: true, feedback, passcode });
   } catch (err) {
-    return json({ success: false, error: "Database error: " + (err.message || String(err)) });
+    return json({ success: false, error: "Database error: " + (err.message || String(err)), passcode });
   }
 };
 
@@ -51,11 +69,15 @@ export default function FeedbackAdmin() {
   const nav = useNavigation();
   const submit = useSubmit();
   const [passcode, setPasscode] = useState("");
+  const [activePasscode, setActivePasscode] = useState("");
   const [selectedTab, setSelectedTab] = useState(0);
+  const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
 
   const isSubmitting = nav.state === "submitting";
-  const isAuthenticated = actionData?.success === true;
+  const isAuthenticated = actionData?.success === true || !!activePasscode;
   const feedbackList = actionData?.feedback || [];
+
+  const currentPass = actionData?.passcode || activePasscode || passcode;
 
   const complaints = feedbackList.filter(f => f.type === "bug");
   const featureRequests = feedbackList.filter(f => f.type === "feature");
@@ -91,7 +113,36 @@ export default function FeedbackAdmin() {
 
   const handleUnlock = () => {
     if (!passcode) return;
-    submit({ passcode }, { method: "post" });
+    setActivePasscode(passcode);
+    submit({ passcode, _action: "unlock" }, { method: "post" });
+  };
+
+  const handleRefresh = () => {
+    submit({ passcode: currentPass, _action: "unlock" }, { method: "post" });
+  };
+
+  const handleDeleteSingle = (id) => {
+    if (confirm("Are you sure you want to delete this submission?")) {
+      submit(
+        {
+          passcode: currentPass,
+          _action: "delete",
+          id: id.toString(),
+        },
+        { method: "post" }
+      );
+    }
+  };
+
+  const handleDeleteAll = () => {
+    setShowDeleteAllModal(false);
+    submit(
+      {
+        passcode: currentPass,
+        _action: "delete_all",
+      },
+      { method: "post" }
+    );
   };
 
   return (
@@ -144,12 +195,24 @@ export default function FeedbackAdmin() {
           ) : (
             <Card padding="0">
               <Box padding="400">
-                <InlineStack align="space-between" blockAlign="center">
+                <InlineStack align="space-between" blockAlign="center" wrap>
                   <div>
                     <Text variant="headingMd" as="h2">Merchant Submissions & Complaints</Text>
                     <Text variant="bodySm" tone="subdued">Live SQLite Database Stream</Text>
                   </div>
-                  <Button onClick={handleUnlock} loading={isSubmitting}>🔄 Refresh Data</Button>
+                  <InlineStack gap="200">
+                    {feedbackList.length > 0 && (
+                      <Button
+                        tone="critical"
+                        variant="secondary"
+                        onClick={() => setShowDeleteAllModal(true)}
+                        loading={isSubmitting}
+                      >
+                        🗑️ Delete All Submissions
+                      </Button>
+                    )}
+                    <Button onClick={handleRefresh} loading={isSubmitting}>🔄 Refresh Data</Button>
+                  </InlineStack>
                 </InlineStack>
               </Box>
 
@@ -175,6 +238,7 @@ export default function FeedbackAdmin() {
                     { title: "Rating" },
                     { title: "Message / Complaint Details" },
                     { title: "Date Submitted" },
+                    { title: "Actions" },
                   ]}
                   selectable={false}
                 >
@@ -189,7 +253,7 @@ export default function FeedbackAdmin() {
                     }
 
                     return (
-                      <IndexTable.Row id={id} key={id} position={index}>
+                      <IndexTable.Row id={id.toString()} key={id} position={index}>
                         <IndexTable.Cell>
                           <Text variant="bodyMd" fontWeight="bold">{shop}</Text>
                           {email ? <Text variant="bodySm" tone="subdued">{email}</Text> : <Text variant="bodySm" tone="subdued">No email provided</Text>}
@@ -199,7 +263,7 @@ export default function FeedbackAdmin() {
                           <Text fontWeight="semibold">{rating} / 5 ⭐</Text>
                         </IndexTable.Cell>
                         <IndexTable.Cell>
-                          <div style={{ whiteSpace: "normal", minWidth: "240px", maxWidth: "420px", lineHeight: "1.4" }}>
+                          <div style={{ whiteSpace: "normal", minWidth: "220px", maxWidth: "380px", lineHeight: "1.4" }}>
                             {message}
                           </div>
                         </IndexTable.Cell>
@@ -207,6 +271,15 @@ export default function FeedbackAdmin() {
                           <Text variant="bodySm" tone="subdued">
                             {new Date(createdAt).toLocaleString()}
                           </Text>
+                        </IndexTable.Cell>
+                        <IndexTable.Cell>
+                          <Button
+                            variant="plain"
+                            tone="critical"
+                            onClick={() => handleDeleteSingle(id)}
+                          >
+                            🗑️ Delete
+                          </Button>
                         </IndexTable.Cell>
                       </IndexTable.Row>
                     );
@@ -218,6 +291,31 @@ export default function FeedbackAdmin() {
         </Layout.Section>
       </Layout>
       <div style={{ height: "60px" }} />
+
+      {/* Delete All Confirmation Modal */}
+      <Modal
+        open={showDeleteAllModal}
+        onClose={() => setShowDeleteAllModal(false)}
+        title="Delete All Submissions?"
+        primaryAction={{
+          content: "Yes, Delete All",
+          destructive: true,
+          onAction: handleDeleteAll,
+          loading: isSubmitting,
+        }}
+        secondaryActions={[
+          {
+            content: "Cancel",
+            onAction: () => setShowDeleteAllModal(false),
+          },
+        ]}
+      >
+        <Modal.Section>
+          <Text as="p">
+            Are you sure you want to permanently delete all merchant feedback and customer complaints from the database? This action cannot be undone.
+          </Text>
+        </Modal.Section>
+      </Modal>
     </Page>
   );
 }
