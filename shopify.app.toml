@@ -1,12 +1,12 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "3cf8fdcd14f80c09eee19b0a1de2d823"
-name = "video-testimonials-app"
-application_url = "https://example.com"
+client_id = "8da281b027cb50c0669f3c8aed7a78bb"
+name = "Reel Section"
+application_url = "https://reel-section.onrender.com"
 embedded = true
 
 [build]
-automatically_update_urls_on_dev = true
+automatically_update_urls_on_dev = false
 include_config_on_deploy = true
 
 [webhooks]
@@ -21,13 +21,17 @@ api_version = "2026-10"
   uri = "/webhooks/app/uninstalled"
 
 [access_scopes]
-# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = ""
+scopes = "write_metafields,read_metafields,write_metafield_definitions,read_metafield_definitions,read_products,read_themes"
 
 [auth]
-redirect_urls = [ "https://example.com/api/auth" ]
+redirect_urls = [
+  "https://reel-section.onrender.com/auth/callback",
+  "https://reel-section.onrender.com/auth/shopify/callback",
+  "https://reel-section.onrender.com/api/auth/callback",
+  "https://reel-section.onrender.com/app/pricing"
+]
 
 [app_proxy]
-url = "https://claire-progress-ceramic-timing.trycloudflare.com/a/reelsection"
+url = "https://reel-section.onrender.com/a/reelsection"
 subpath = "reelsection"
 prefix = "apps"
