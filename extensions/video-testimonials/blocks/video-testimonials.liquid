@@ -31,6 +31,7 @@
   assign card_h           = block.settings.card_height | default: 460
   assign card_r           = block.settings.card_radius | default: 16
   assign card_g           = block.settings.card_gap | default: 16
+  assign card_p           = block.settings.card_content_padding | default: 14
 
   assign name_color       = block.settings.name_color | default: global_settings.accentColor | default: '#C9A15A'
   assign name_size        = block.settings.name_size | default: 15
@@ -93,6 +94,7 @@
     --pvt-media-h: {{ card_h }}px;
     --pvt-radius: {{ card_r }}px;
     --pvt-gap: {{ card_g }}px;
+    --pvt-card-p: {{ card_p }}px;
     --pvt-bg: {{ bg_color }};
     --pvt-pt: {{ pt }}px;
     --pvt-pb: {{ pb }}px;
@@ -354,6 +356,7 @@
     { "type": "range", "id": "card_width", "label": "Card width", "min": 200, "max": 400, "step": 10, "unit": "px", "default": 280 },
     { "type": "range", "id": "card_height", "label": "Card media height", "min": 300, "max": 600, "step": 20, "unit": "px", "default": 460 },
     { "type": "range", "id": "card_gap", "label": "Gap between cards", "min": 8, "max": 32, "step": 2, "unit": "px", "default": 16 },
+    { "type": "range", "id": "card_content_padding", "label": "Card content padding", "min": 8, "max": 32, "step": 2, "unit": "px", "default": 14 },
     { "type": "color", "id": "name_color", "label": "Customer name color", "default": "#c9a15a" },
     { "type": "range", "id": "name_size", "label": "Customer name font size", "min": 12, "max": 22, "step": 1, "unit": "px", "default": 15 },
     { "type": "color", "id": "role_color", "label": "Customer role / subtitle color", "default": "#8e8e93" },
