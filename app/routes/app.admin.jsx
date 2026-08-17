@@ -8,16 +8,21 @@ import {
   Badge,
   Text,
   Select,
-  BlockStack
+  BlockStack,
+  InlineStack,
+  Button,
+  Modal,
+  TextField,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { syncTestimonialsToMetafields } from "../metafields.server";
+import { useState, useCallback } from "react";
 
 export const loader = async ({ request }) => {
   const { session } = await authenticate.admin(request);
-  
+
   // Security Check
   const adminShop = process.env.ADMIN_SHOP;
   if (!adminShop || session.shop !== adminShop) {
@@ -36,17 +41,22 @@ export const loader = async ({ request }) => {
     if (!shopMap[sess.shop]) {
       shopMap[sess.shop] = sess;
     } else if (!sess.isOnline) {
-      // Prefer offline session (has the app-level access token)
       shopMap[sess.shop] = sess;
     }
   }
   const uniqueSessions = Object.values(shopMap);
 
-  // 2. Get all manual overrides
+  // 2. Get all manual overrides and blocked stores
   const overrides = await prisma.storePlanOverride.findMany();
   const overrideMap = {};
-  overrides.forEach(o => {
-    overrideMap[o.shop] = { plan: o.plan, createdAt: o.createdAt };
+  overrides.forEach((o) => {
+    overrideMap[o.shop] = { plan: o.plan };
+  });
+
+  const blockedStores = await prisma.blockedStore.findMany();
+  const blockedMap = {};
+  blockedStores.forEach((b) => {
+    blockedMap[b.shop] = { reason: b.reason, blockedAt: b.blockedAt };
   });
 
   // 3. For each shop, use the accessToken to query Shopify GraphQL directly
@@ -55,9 +65,8 @@ export const loader = async ({ request }) => {
   const stores = await Promise.all(
     uniqueSessions.map(async (sess) => {
       let installedAt = null;
-      let ownerName = null;
-      let ownerEmail = null;
       let shopName = null;
+      let ownerEmail = null;
 
       try {
         const gqlResponse = await fetch(
@@ -74,7 +83,6 @@ export const loader = async ({ request }) => {
                   name
                   email
                   myshopifyDomain
-                  plan { displayName }
                 }
                 appInstallation {
                   createdAt
@@ -92,6 +100,8 @@ export const loader = async ({ request }) => {
         console.warn(`Could not fetch Shopify data for ${sess.shop}:`, e.message);
       }
 
+      const blockInfo = blockedMap[sess.shop];
+
       return {
         id: sess.shop,
         shop: sess.shop,
@@ -99,6 +109,9 @@ export const loader = async ({ request }) => {
         ownerEmail: ownerEmail || sess.email || "N/A",
         installedAt,
         manualPlan: overrideMap[sess.shop]?.plan || "NONE",
+        isBlocked: !!blockInfo,
+        blockReason: blockInfo?.reason || "",
+        blockedAt: blockInfo?.blockedAt || null,
       };
     })
   );
@@ -108,7 +121,7 @@ export const loader = async ({ request }) => {
 
 export const action = async ({ request }) => {
   const { session } = await authenticate.admin(request);
-  
+
   const adminShop = process.env.ADMIN_SHOP;
   if (!adminShop || session.shop !== adminShop) {
     return json({ error: "Unauthorized" }, { status: 403 });
@@ -117,16 +130,14 @@ export const action = async ({ request }) => {
   const formData = await request.formData();
   const actionType = formData.get("action");
   const targetShop = formData.get("targetShop");
-  const plan = formData.get("plan");
 
   if (actionType === "update_plan") {
+    const plan = formData.get("plan");
     let hasPaidPlan = false;
     let planName = "Free Starter";
 
     if (plan === "NONE") {
-      await prisma.storePlanOverride.deleteMany({
-        where: { shop: targetShop }
-      });
+      await prisma.storePlanOverride.deleteMany({ where: { shop: targetShop } });
     } else {
       await prisma.storePlanOverride.upsert({
         where: { shop: targetShop },
@@ -137,21 +148,28 @@ export const action = async ({ request }) => {
       planName = plan;
     }
 
-    // Attempt to sync immediately using the stored access token
+    // Sync to metafields if it's the admin's own shop
     try {
-      const targetSession = await prisma.session.findFirst({
-        where: { shop: targetShop, isOnline: false },
-      });
-      if (targetSession) {
+      if (targetShop === session.shop) {
         const { admin } = await authenticate.admin(request);
-        // Use the current admin session if same shop, otherwise skip sync (will sync on next page load)
-        if (targetShop === session.shop) {
-          await syncTestimonialsToMetafields(admin, targetShop, hasPaidPlan, planName);
-        }
+        await syncTestimonialsToMetafields(admin, targetShop, hasPaidPlan, planName);
       }
     } catch (e) {
       console.warn("Could not sync to metafields for", targetShop, e);
     }
+  }
+
+  if (actionType === "block_store") {
+    const reason = formData.get("reason") || "";
+    await prisma.blockedStore.upsert({
+      where: { shop: targetShop },
+      update: { reason },
+      create: { shop: targetShop, reason },
+    });
+  }
+
+  if (actionType === "unblock_store") {
+    await prisma.blockedStore.deleteMany({ where: { shop: targetShop } });
   }
 
   return json({ success: true });
@@ -161,8 +179,39 @@ export default function AdminDashboard() {
   const { stores, isUnauthorized } = useLoaderData();
   const submit = useSubmit();
   const nav = useNavigation();
-
   const isUpdating = nav.state !== "idle";
+
+  const [blockModal, setBlockModal] = useState(null); // { shop, shopName }
+  const [blockReason, setBlockReason] = useState("");
+
+  const handlePlanChange = (shop, newPlan) => {
+    const formData = new FormData();
+    formData.append("action", "update_plan");
+    formData.append("targetShop", shop);
+    formData.append("plan", newPlan);
+    submit(formData, { method: "post" });
+  };
+
+  const handleOpenBlockModal = useCallback((shop, shopName) => {
+    setBlockReason("");
+    setBlockModal({ shop, shopName });
+  }, []);
+
+  const handleConfirmBlock = useCallback(() => {
+    const formData = new FormData();
+    formData.append("action", "block_store");
+    formData.append("targetShop", blockModal.shop);
+    formData.append("reason", blockReason);
+    submit(formData, { method: "post" });
+    setBlockModal(null);
+  }, [blockModal, blockReason, submit]);
+
+  const handleUnblock = useCallback((shop) => {
+    const formData = new FormData();
+    formData.append("action", "unblock_store");
+    formData.append("targetShop", shop);
+    submit(formData, { method: "post" });
+  }, [submit]);
 
   if (isUnauthorized) {
     return (
@@ -180,30 +229,35 @@ export default function AdminDashboard() {
     );
   }
 
-  const handlePlanChange = (shop, newPlan) => {
-    const formData = new FormData();
-    formData.append("action", "update_plan");
-    formData.append("targetShop", shop);
-    formData.append("plan", newPlan);
-    submit(formData, { method: "post" });
-  };
-
   const rowMarkup = stores.map(
-    ({ id, shop, shopName, ownerEmail, installedAt, manualPlan }, index) => {
+    ({ id, shop, shopName, ownerEmail, installedAt, manualPlan, isBlocked, blockReason: reason, blockedAt }, index) => {
       const dateDisplay = installedAt
         ? new Date(installedAt).toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" })
         : "Unknown";
 
       return (
-        <IndexTable.Row id={id} key={id} position={index}>
+        <IndexTable.Row
+          id={id}
+          key={id}
+          position={index}
+          tone={isBlocked ? "critical" : undefined}
+        >
           <IndexTable.Cell>
             <BlockStack gap="050">
-              <Text variant="bodyMd" fontWeight="bold" as="span">
-                {shopName}
-              </Text>
+              <InlineStack gap="200" blockAlign="center">
+                <Text variant="bodyMd" fontWeight="bold" as="span">
+                  {shopName}
+                </Text>
+                {isBlocked && <Badge tone="critical">Blocked</Badge>}
+              </InlineStack>
               <Text tone="subdued" variant="bodySm" as="span">
                 {shop}
               </Text>
+              {isBlocked && reason && (
+                <Text tone="critical" variant="bodySm" as="span">
+                  Reason: {reason}
+                </Text>
+              )}
             </BlockStack>
           </IndexTable.Cell>
           <IndexTable.Cell>
@@ -220,12 +274,33 @@ export default function AdminDashboard() {
                 { label: "None (Shopify Billing)", value: "NONE" },
                 { label: "Free Plan", value: "FREE" },
                 { label: "Monthly Pro", value: "MONTHLY" },
-                { label: "Lifetime Access", value: "LIFETIME" }
+                { label: "Lifetime Access", value: "LIFETIME" },
               ]}
               value={manualPlan}
               onChange={(val) => handlePlanChange(shop, val)}
-              disabled={isUpdating}
+              disabled={isUpdating || isBlocked}
             />
+          </IndexTable.Cell>
+          <IndexTable.Cell>
+            {isBlocked ? (
+              <Button
+                tone="success"
+                size="slim"
+                onClick={() => handleUnblock(shop)}
+                disabled={isUpdating}
+              >
+                ✅ Unblock
+              </Button>
+            ) : (
+              <Button
+                tone="critical"
+                size="slim"
+                onClick={() => handleOpenBlockModal(shop, shopName)}
+                disabled={isUpdating}
+              >
+                🚫 Block
+              </Button>
+            )}
           </IndexTable.Cell>
         </IndexTable.Row>
       );
@@ -235,6 +310,36 @@ export default function AdminDashboard() {
   return (
     <Page fullWidth>
       <TitleBar title="Super Admin Dashboard" />
+
+      {/* Block Confirmation Modal */}
+      <Modal
+        open={!!blockModal}
+        onClose={() => setBlockModal(null)}
+        title={`Block "${blockModal?.shopName}"?`}
+        primaryAction={{
+          content: "Confirm Block",
+          destructive: true,
+          onAction: handleConfirmBlock,
+        }}
+        secondaryActions={[{ content: "Cancel", onAction: () => setBlockModal(null) }]}
+      >
+        <Modal.Section>
+          <BlockStack gap="400">
+            <Text as="p">
+              This will prevent <strong>{blockModal?.shop}</strong> from accessing the app. Their existing storefront reels will remain unaffected.
+            </Text>
+            <TextField
+              label="Reason for blocking (shown to the store owner)"
+              value={blockReason}
+              onChange={setBlockReason}
+              placeholder="e.g. Suspected abuse of free trial, Chargebacks, etc."
+              multiline={2}
+              autoComplete="off"
+            />
+          </BlockStack>
+        </Modal.Section>
+      </Modal>
+
       <BlockStack gap="500">
         <Layout>
           <Layout.Section>
@@ -247,6 +352,7 @@ export default function AdminDashboard() {
                   { title: "Owner Email" },
                   { title: "Installed Date" },
                   { title: "Manual Plan Override" },
+                  { title: "Actions" },
                 ]}
                 selectable={false}
               >

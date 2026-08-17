@@ -22,6 +22,13 @@ import { LIFETIME_PLAN, MONTHLY_PLAN } from "../constants";
 
 export const loader = async ({ request }) => {
   const { session, admin, billing } = await authenticate.admin(request);
+
+  // Block check — if this shop has been blocked by admin, show suspended screen
+  const blockedEntry = await prisma.blockedStore.findUnique({ where: { shop: session.shop } });
+  if (blockedEntry) {
+    return json({ isBlocked: true, blockReason: blockedEntry.reason, testimonials: [], hasPaidPlan: false, activePlanName: null });
+  }
+
   let testimonials = await prisma.testimonial.findMany({
     where: { shop: session.shop },
     orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
@@ -210,12 +217,40 @@ export const action = async ({ request }) => {
 };
 
 export default function Index() {
-  const { testimonials, hasPaidPlan, activePlanName } = useLoaderData();
+  const { testimonials, hasPaidPlan, activePlanName, isBlocked, blockReason } = useLoaderData();
   const navigate = useNavigate();
   const submit = useSubmit();
 
   const { selectedResources, allResourcesSelected, handleSelectionChange, clearSelection } =
     useIndexResourceState(testimonials);
+
+  if (isBlocked) {
+    return (
+      <Page>
+        <TitleBar title="Access Suspended" />
+        <div style={{ textAlign: "center", padding: "80px 20px" }}>
+          <div style={{ fontSize: "56px", marginBottom: "16px" }}>🚫</div>
+          <Text variant="headingXl" as="h1">Your Access Has Been Suspended</Text>
+          <div style={{ marginTop: "16px", maxWidth: "480px", margin: "16px auto 0" }}>
+            {blockReason ? (
+              <Banner tone="critical" title="Reason">
+                <p>{blockReason}</p>
+              </Banner>
+            ) : (
+              <Text tone="subdued" as="p">
+                Your access to this app has been suspended by the administrator.
+              </Text>
+            )}
+            <div style={{ marginTop: "24px" }}>
+              <Text tone="subdued" as="p">
+                If you believe this is a mistake, please contact support.
+              </Text>
+            </div>
+          </div>
+        </div>
+      </Page>
+    );
+  }
 
   const promotedBulkActions = [
     {
