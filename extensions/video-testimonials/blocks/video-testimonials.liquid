@@ -6,6 +6,11 @@
     assign is_limit_reached = true
   endif
 
+  assign is_blocked = false
+  if plan_status.isBlocked == true or plan_status.isBlocked == 'true' or plan_status.plan == 'blocked'
+    assign is_blocked = true
+  endif
+
   assign is_paid_member = false
   if plan_status.hasPaidPlan == true or plan_status.hasPaidPlan == 'true' or plan_status.hasLifetime == true or plan_status.hasLifetime == 'true'
     assign is_paid_member = true
@@ -74,8 +79,8 @@
   endif
 -%}
 
-{%- if is_limit_reached and request.design_mode == false -%}
-  {%- comment -%} Free tier monthly limit reached (1,000 views) - Section cleanly pauses on live storefront {%- endcomment -%}
+{%- if (is_limit_reached or is_blocked) and request.design_mode == false -%}
+  {%- comment -%} Free tier monthly limit reached or account suspended - Section cleanly pauses on live storefront {%- endcomment -%}
 {%- else -%}
 
 <section

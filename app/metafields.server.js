@@ -27,16 +27,19 @@ export async function syncTestimonialsToMetafields(admin, shop, hasPaidPlan = fa
       _sum: { count: true },
     });
     const monthlyViews = viewsThisMonth._sum.count || 0;
-    const isLimitReached = !hasPaidPlan && monthlyViews >= 1000;
+    // Check if store is blocked
+    const blockedEntry = await prisma.blockedStore.findUnique({ where: { shop } });
+    const isBlocked = !!blockedEntry;
 
     const planStatus = {
-      isLimitReached,
-      hasPaidPlan: !!hasPaidPlan,
-      hasLifetime: !!hasPaidPlan,
+      isBlocked,
+      isLimitReached: isBlocked || (!hasPaidPlan && monthlyViews >= 1000),
+      hasPaidPlan: !isBlocked && !!hasPaidPlan,
+      hasLifetime: !isBlocked && !!hasPaidPlan,
       monthlyViews,
       monthlyLimit: 1000,
-      plan: hasPaidPlan ? "pro" : "free",
-      planName: planName || (hasPaidPlan ? "Monthly Pro" : "Free Starter"),
+      plan: isBlocked ? "blocked" : (hasPaidPlan ? "pro" : "free"),
+      planName: isBlocked ? "Account Suspended" : (planName || (hasPaidPlan ? "Monthly Pro" : "Free Starter")),
     };
 
     // Ensure Metafield Definitions exist with PUBLIC_READ access for Storefront Liquid
