@@ -16,13 +16,14 @@ import {
   Box,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
-import { authenticate } from "../shopify.server";
+import { authenticate, unauthenticated } from "../shopify.server";
 import prisma from "../db.server";
+import { LIFETIME_PLAN, MONTHLY_PLAN } from "../constants";
 import { syncTestimonialsToMetafields } from "../metafields.server";
 import { useState, useCallback } from "react";
 
 export const loader = async ({ request }) => {
-  const { session, admin } = await authenticate.admin(request);
+  const { session, admin, billing } = await authenticate.admin(request);
 
   // Security Check
   const adminShop = process.env.ADMIN_SHOP;
@@ -58,7 +59,7 @@ export const loader = async ({ request }) => {
   ]);
   const uniqueShops = Array.from(uniqueShopsSet).filter(Boolean);
 
-  // 2. Aggregate testimonial counts per shop
+  // 2. Aggregate testimonial counts from SQLite
   const testimonialCounts = await prisma.testimonial.groupBy({
     by: ["shop"],
     _count: { id: true },
@@ -81,27 +82,139 @@ export const loader = async ({ request }) => {
     viewCountMap[v.shop] = v._sum.count || 0;
   });
 
-  // 4. Build store details from database (no external slow GraphQL calls)
-  const stores = uniqueShops.map((shopDomain) => {
-    const blockInfo = blockedMap[shopDomain];
-    const override = overrideMap[shopDomain];
+  // 4. Live check billing for current shop
+  let currentShopPaidPlan = false;
+  let currentShopPlanName = null;
+  try {
+    const billingCheck = await billing.check({
+      plans: [LIFETIME_PLAN, MONTHLY_PLAN],
+      isTest: true,
+    });
+    currentShopPaidPlan = !!billingCheck.hasActivePayment;
+    currentShopPlanName = billingCheck.appSubscriptions?.length > 0
+      ? billingCheck.appSubscriptions[0].name
+      : billingCheck.oneTimePurchases?.length > 0
+      ? billingCheck.oneTimePurchases[0].name
+      : null;
+  } catch (e) {}
 
-    return {
-      id: shopDomain,
-      shop: shopDomain,
-      manualPlan: override?.plan || "NONE",
-      testimonialCount: testimonialCountMap[shopDomain] || 0,
-      monthlyViews: viewCountMap[shopDomain] || 0,
-      isBlocked: !!blockInfo,
-      blockReason: blockInfo?.reason || "",
-    };
-  });
+  // 5. Fetch true live metafields & billing status for each shop
+  const stores = await Promise.all(
+    uniqueShops.map(async (shopDomain) => {
+      const blockInfo = blockedMap[shopDomain];
+      const override = overrideMap[shopDomain];
+      let reelCount = testimonialCountMap[shopDomain] || 0;
+      let effectivePlanName = "Free Starter";
+      let hasPaid = false;
+
+      if (blockInfo) {
+        effectivePlanName = "Account Suspended";
+      } else if (override) {
+        if (override.plan === "LIFETIME") {
+          effectivePlanName = "Lifetime Access ($10)";
+          hasPaid = true;
+        } else if (override.plan === "MONTHLY") {
+          effectivePlanName = "Monthly Pro ($2/mo)";
+          hasPaid = true;
+        } else {
+          effectivePlanName = "Free Starter";
+        }
+      } else if (shopDomain === session.shop && currentShopPaidPlan) {
+        effectivePlanName = currentShopPlanName || "Monthly Pro ($2/mo)";
+        hasPaid = true;
+      }
+
+      // Check metafields for accurate reels & plan backup
+      if (shopDomain === session.shop) {
+        try {
+          const res = await admin.graphql(`
+            query {
+              shop {
+                planStatus: metafield(namespace: "video_testimonials", key: "plan_status") { value }
+                reelsData: metafield(namespace: "video_testimonials", key: "data") { value }
+              }
+            }
+          `);
+          const data = await res.json();
+          const metafieldPlan = data.data?.shop?.planStatus?.value;
+          const metafieldReels = data.data?.shop?.reelsData?.value;
+
+          if (metafieldPlan && !override && !blockInfo && !hasPaid) {
+            try {
+              const parsedPlan = JSON.parse(metafieldPlan);
+              if (parsedPlan.hasPaidPlan || parsedPlan.hasLifetime) {
+                effectivePlanName = parsedPlan.planName || "Monthly Pro ($2/mo)";
+                hasPaid = true;
+              }
+            } catch (e) {}
+          }
+
+          if (metafieldReels) {
+            try {
+              const parsedReels = JSON.parse(metafieldReels);
+              if (Array.isArray(parsedReels)) {
+                reelCount = Math.max(reelCount, parsedReels.length);
+              }
+            } catch (e) {}
+          }
+        } catch (e) {}
+      } else {
+        try {
+          const unauth = await unauthenticated.admin(shopDomain);
+          if (unauth?.admin) {
+            const res = await unauth.admin.graphql(`
+              query {
+                shop {
+                  planStatus: metafield(namespace: "video_testimonials", key: "plan_status") { value }
+                  reelsData: metafield(namespace: "video_testimonials", key: "data") { value }
+                }
+              }
+            `);
+            const data = await res.json();
+            const metafieldPlan = data.data?.shop?.planStatus?.value;
+            const metafieldReels = data.data?.shop?.reelsData?.value;
+
+            if (metafieldPlan && !override && !blockInfo && !hasPaid) {
+              try {
+                const parsedPlan = JSON.parse(metafieldPlan);
+                if (parsedPlan.hasPaidPlan || parsedPlan.hasLifetime) {
+                  effectivePlanName = parsedPlan.planName || "Monthly Pro ($2/mo)";
+                  hasPaid = true;
+                }
+              } catch (e) {}
+            }
+
+            if (metafieldReels) {
+              try {
+                const parsedReels = JSON.parse(metafieldReels);
+                if (Array.isArray(parsedReels)) {
+                  reelCount = Math.max(reelCount, parsedReels.length);
+                }
+              } catch (e) {}
+            }
+          }
+        } catch (e) {}
+      }
+
+      return {
+        id: shopDomain,
+        shop: shopDomain,
+        effectivePlanName,
+        hasPaid,
+        manualPlan: override?.plan || "NONE",
+        testimonialCount: reelCount,
+        monthlyViews: viewCountMap[shopDomain] || 0,
+        isBlocked: !!blockInfo,
+        blockReason: blockInfo?.reason || "",
+      };
+    })
+  );
 
   const stats = {
     totalStores: stores.length,
-    activePaid: stores.filter((s) => s.manualPlan === "MONTHLY" || s.manualPlan === "LIFETIME").length,
+    activePaid: stores.filter((s) => s.hasPaid).length,
     blockedStores: stores.filter((s) => s.isBlocked).length,
-    totalTestimonials: Object.values(testimonialCountMap).reduce((a, b) => a + b, 0),
+    totalTestimonials: stores.reduce((sum, s) => sum + s.testimonialCount, 0),
   };
 
   return json({ stores, stats, currentShop: session.shop });
@@ -255,8 +368,15 @@ export default function AdminDashboard() {
   }
 
   const rowMarkup = stores.map(
-    ({ id, shop, manualPlan, testimonialCount, monthlyViews, isBlocked, blockReason: reason }, index) => {
+    ({ id, shop, effectivePlanName, hasPaid, manualPlan, testimonialCount, monthlyViews, isBlocked, blockReason: reason }, index) => {
       const isCurrentShop = shop === currentShop;
+
+      let planBadgeTone = "info";
+      if (isBlocked) {
+        planBadgeTone = "critical";
+      } else if (hasPaid) {
+        planBadgeTone = "success";
+      }
 
       return (
         <IndexTable.Row
@@ -285,17 +405,9 @@ export default function AdminDashboard() {
 
           {/* Our App Plan */}
           <IndexTable.Cell>
-            {isBlocked ? (
-              <Badge tone="critical">🚫 Suspended</Badge>
-            ) : manualPlan === "LIFETIME" ? (
-              <Badge tone="success">⭐ Lifetime Access ($10)</Badge>
-            ) : manualPlan === "MONTHLY" ? (
-              <Badge tone="success">✨ Monthly Pro ($2/mo)</Badge>
-            ) : manualPlan === "FREE" ? (
-              <Badge tone="info">Free Starter (Manual)</Badge>
-            ) : (
-              <Badge tone="info">Free Starter</Badge>
-            )}
+            <Badge tone={planBadgeTone}>
+              {isBlocked ? "🚫 Suspended" : hasPaid ? `⭐ ${effectivePlanName}` : effectivePlanName}
+            </Badge>
           </IndexTable.Cell>
 
           {/* Testimonials / Reels Count */}
