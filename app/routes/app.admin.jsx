@@ -13,12 +13,10 @@ import {
   Button,
   Modal,
   TextField,
-  Banner,
   Box,
-  Divider,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
-import { authenticate, unauthenticated } from "../shopify.server";
+import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { syncTestimonialsToMetafields } from "../metafields.server";
 import { useState, useCallback } from "react";
@@ -29,10 +27,10 @@ export const loader = async ({ request }) => {
   // Security Check
   const adminShop = process.env.ADMIN_SHOP;
   if (!adminShop || session.shop !== adminShop) {
-    return json({ isUnauthorized: true, stores: [], stats: {} });
+    return json({ isUnauthorized: true, stores: [], stats: {}, currentShop: session.shop });
   }
 
-  // 1. Collect all known shop domains from ALL database tables to prevent losing stores
+  // 1. Collect all shop domains from database
   const allSessions = await prisma.session.findMany({ orderBy: { shop: "asc" } });
   const allOverrides = await prisma.storePlanOverride.findMany();
   const allBlocked = await prisma.blockedStore.findMany();
@@ -49,14 +47,6 @@ export const loader = async ({ request }) => {
   allBlocked.forEach((b) => {
     blockedMap[b.shop] = { reason: b.reason, blockedAt: b.blockedAt };
   });
-
-  // Map session by shop (prefer offline session for API token)
-  const sessionMap = {};
-  for (const s of allSessions) {
-    if (!sessionMap[s.shop] || (!s.isOnline && s.accessToken)) {
-      sessionMap[s.shop] = s;
-    }
-  }
 
   // Aggregate all unique shops
   const uniqueShopsSet = new Set([
@@ -91,112 +81,21 @@ export const loader = async ({ request }) => {
     viewCountMap[v.shop] = v._sum.count || 0;
   });
 
-  const SHOPIFY_API_VERSION = "2025-01";
+  // 4. Build store details from database (no external slow GraphQL calls)
+  const stores = uniqueShops.map((shopDomain) => {
+    const blockInfo = blockedMap[shopDomain];
+    const override = overrideMap[shopDomain];
 
-  // 4. Fetch details for each shop
-  const stores = await Promise.all(
-    uniqueShops.map(async (shopDomain) => {
-      const sess = sessionMap[shopDomain];
-      let shopName = shopDomain.replace(".myshopify.com", "");
-      let ownerEmail = sess?.email || "—";
-      let installedAt = null;
-      let shopifyPlan = "Standard";
-
-      if (shopDomain === session.shop) {
-        try {
-          const res = await admin.graphql(`
-            query {
-              shop {
-                name
-                myshopifyDomain
-                plan { displayName }
-              }
-              appInstallation {
-                createdAt
-              }
-            }
-          `);
-          const data = await res.json();
-          if (data.data?.shop?.name) shopName = data.data.shop.name;
-          if (data.data?.shop?.plan?.displayName) shopifyPlan = data.data.shop.plan.displayName;
-          if (data.data?.appInstallation?.createdAt) installedAt = data.data.appInstallation.createdAt;
-        } catch (e) {
-          console.warn("[Admin] Current shop GraphQL note:", e.message);
-        }
-      } else {
-        // Try unauthenticated admin client first
-        let fetchedOk = false;
-        try {
-          const unauth = await unauthenticated.admin(shopDomain);
-          if (unauth?.admin) {
-            const res = await unauth.admin.graphql(`
-              query {
-                shop {
-                  name
-                  plan { displayName }
-                }
-                appInstallation {
-                  createdAt
-                }
-              }
-            `);
-            const data = await res.json();
-            if (data.data?.shop?.name) {
-              shopName = data.data.shop.name;
-              fetchedOk = true;
-            }
-            if (data.data?.shop?.plan?.displayName) shopifyPlan = data.data.shop.plan.displayName;
-            if (data.data?.appInstallation?.createdAt) installedAt = data.data.appInstallation.createdAt;
-          }
-        } catch (unauthErr) {}
-
-        // Fallback to fetch with sess.accessToken if available
-        if (!fetchedOk && sess?.accessToken) {
-          try {
-            const res = await fetch(`https://${shopDomain}/admin/api/${SHOPIFY_API_VERSION}/graphql.json`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "X-Shopify-Access-Token": sess.accessToken,
-              },
-              body: JSON.stringify({
-                query: `{
-                  shop {
-                    name
-                    plan { displayName }
-                  }
-                  appInstallation {
-                    createdAt
-                  }
-                }`,
-              }),
-            });
-            const data = await res.json();
-            if (data.data?.shop?.name) shopName = data.data.shop.name;
-            if (data.data?.shop?.plan?.displayName) shopifyPlan = data.data.shop.plan.displayName;
-            if (data.data?.appInstallation?.createdAt) installedAt = data.data.appInstallation.createdAt;
-          } catch (e) {}
-        }
-      }
-
-      const blockInfo = blockedMap[shopDomain];
-
-      return {
-        id: shopDomain,
-        shop: shopDomain,
-        shopName,
-        ownerEmail,
-        shopifyPlan,
-        installedAt,
-        manualPlan: overrideMap[shopDomain]?.plan || "NONE",
-        testimonialCount: testimonialCountMap[shopDomain] || 0,
-        monthlyViews: viewCountMap[shopDomain] || 0,
-        isBlocked: !!blockInfo,
-        blockReason: blockInfo?.reason || "",
-        hasActiveSession: !!sess,
-      };
-    })
-  );
+    return {
+      id: shopDomain,
+      shop: shopDomain,
+      manualPlan: override?.plan || "NONE",
+      testimonialCount: testimonialCountMap[shopDomain] || 0,
+      monthlyViews: viewCountMap[shopDomain] || 0,
+      isBlocked: !!blockInfo,
+      blockReason: blockInfo?.reason || "",
+    };
+  });
 
   const stats = {
     totalStores: stores.length,
@@ -219,7 +118,7 @@ export const action = async ({ request }) => {
   const formData = await request.formData();
   const actionType = formData.get("action");
   const targetShopRaw = formData.get("targetShop")?.trim().toLowerCase();
-  
+
   if (!targetShopRaw) {
     return json({ error: "Store domain is required" }, { status: 400 });
   }
@@ -294,7 +193,7 @@ export default function AdminDashboard() {
   const nav = useNavigation();
   const isUpdating = nav.state !== "idle";
 
-  const [blockModal, setBlockModal] = useState(null); // { shop, shopName }
+  const [blockModal, setBlockModal] = useState(null); // { shop }
   const [blockReason, setBlockReason] = useState("");
   const [newStoreDomain, setNewStoreDomain] = useState("");
   const [newStorePlan, setNewStorePlan] = useState("LIFETIME");
@@ -307,9 +206,9 @@ export default function AdminDashboard() {
     submit(formData, { method: "post" });
   };
 
-  const handleOpenBlockModal = useCallback((shop, shopName) => {
+  const handleOpenBlockModal = useCallback((shop) => {
     setBlockReason("");
-    setBlockModal({ shop, shopName });
+    setBlockModal({ shop });
   }, []);
 
   const handleConfirmBlock = useCallback(() => {
@@ -356,26 +255,7 @@ export default function AdminDashboard() {
   }
 
   const rowMarkup = stores.map(
-    (
-      {
-        id,
-        shop,
-        shopName,
-        ownerEmail,
-        shopifyPlan,
-        installedAt,
-        manualPlan,
-        testimonialCount,
-        monthlyViews,
-        isBlocked,
-        blockReason: reason,
-      },
-      index
-    ) => {
-      const dateDisplay = installedAt
-        ? new Date(installedAt).toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" })
-        : "Installed";
-
+    ({ id, shop, manualPlan, testimonialCount, monthlyViews, isBlocked, blockReason: reason }, index) => {
       const isCurrentShop = shop === currentShop;
 
       return (
@@ -385,18 +265,16 @@ export default function AdminDashboard() {
           position={index}
           tone={isBlocked ? "critical" : undefined}
         >
+          {/* Store Domain */}
           <IndexTable.Cell>
             <BlockStack gap="050">
               <InlineStack gap="200" blockAlign="center">
                 <Text variant="bodyMd" fontWeight="bold" as="span">
-                  {shopName}
+                  {shop}
                 </Text>
-                {isCurrentShop && <Badge tone="info">You</Badge>}
+                {isCurrentShop && <Badge tone="info">Your Test Store</Badge>}
                 {isBlocked && <Badge tone="critical">🚫 Blocked</Badge>}
               </InlineStack>
-              <Text tone="subdued" variant="bodySm" as="span">
-                {shop}
-              </Text>
               {isBlocked && reason && (
                 <Text tone="critical" variant="bodySm" as="span">
                   Reason: {reason}
@@ -405,17 +283,14 @@ export default function AdminDashboard() {
             </BlockStack>
           </IndexTable.Cell>
 
-          <IndexTable.Cell>
-            <Badge tone="subdued">{shopifyPlan}</Badge>
-          </IndexTable.Cell>
-
+          {/* Our App Plan */}
           <IndexTable.Cell>
             {isBlocked ? (
               <Badge tone="critical">🚫 Suspended</Badge>
             ) : manualPlan === "LIFETIME" ? (
-              <Badge tone="success">⭐ Lifetime Access</Badge>
+              <Badge tone="success">⭐ Lifetime Access ($10)</Badge>
             ) : manualPlan === "MONTHLY" ? (
-              <Badge tone="success">✨ Monthly Pro</Badge>
+              <Badge tone="success">✨ Monthly Pro ($2/mo)</Badge>
             ) : manualPlan === "FREE" ? (
               <Badge tone="info">Free Starter (Manual)</Badge>
             ) : (
@@ -423,18 +298,21 @@ export default function AdminDashboard() {
             )}
           </IndexTable.Cell>
 
+          {/* Testimonials / Reels Count */}
           <IndexTable.Cell>
-            <Text as="span">{testimonialCount} reels</Text>
+            <Text as="span" fontWeight="semibold">
+              {testimonialCount} {testimonialCount === 1 ? "reel" : "reels"}
+            </Text>
           </IndexTable.Cell>
 
+          {/* Monthly Views */}
           <IndexTable.Cell>
-            <Text as="span">{monthlyViews.toLocaleString()} views</Text>
+            <Text as="span">
+              {monthlyViews.toLocaleString()} views
+            </Text>
           </IndexTable.Cell>
 
-          <IndexTable.Cell>
-            <Text as="span">{dateDisplay}</Text>
-          </IndexTable.Cell>
-
+          {/* Manual Plan Dropdown */}
           <IndexTable.Cell>
             <Select
               label="Manual Plan"
@@ -451,6 +329,7 @@ export default function AdminDashboard() {
             />
           </IndexTable.Cell>
 
+          {/* Block / Unblock Actions */}
           <IndexTable.Cell>
             {isBlocked ? (
               <Button
@@ -465,7 +344,7 @@ export default function AdminDashboard() {
               <Button
                 tone="critical"
                 size="slim"
-                onClick={() => handleOpenBlockModal(shop, shopName)}
+                onClick={() => handleOpenBlockModal(shop)}
                 disabled={isUpdating}
               >
                 🚫 Block
@@ -485,7 +364,7 @@ export default function AdminDashboard() {
       <Modal
         open={!!blockModal}
         onClose={() => setBlockModal(null)}
-        title={`Block "${blockModal?.shopName}"?`}
+        title={`Block "${blockModal?.shop}"?`}
         primaryAction={{
           content: "Confirm Block & Suspend Service",
           destructive: true,
@@ -499,8 +378,8 @@ export default function AdminDashboard() {
               This will <strong>suspend all service</strong> for <strong>{blockModal?.shop}</strong>:
             </Text>
             <Text as="p" tone="critical">
-              • App admin access will be suspended<br />
-              • Storefront video reels section will be disabled/paused on their live store
+              • App access will be locked down (they can only see Settings to contact you)<br />
+              • Storefront video reels section will be disabled/hidden on their live store
             </Text>
             <TextField
               label="Reason for blocking (shown on suspended screen)"
@@ -515,7 +394,7 @@ export default function AdminDashboard() {
       </Modal>
 
       <BlockStack gap="500">
-        {/* Metric Cards Banner */}
+        {/* Metric Cards */}
         <Layout>
           <Layout.Section variant="oneThird">
             <Card padding="400">
@@ -528,7 +407,7 @@ export default function AdminDashboard() {
           <Layout.Section variant="oneThird">
             <Card padding="400">
               <BlockStack gap="100">
-                <Text variant="bodySm" tone="subdued">Active Paid Overrides</Text>
+                <Text variant="bodySm" tone="subdued">Active Paid Plans</Text>
                 <Text variant="heading2xl" as="h3" tone="success">{stats.activePaid || 0}</Text>
               </BlockStack>
             </Card>
@@ -550,7 +429,7 @@ export default function AdminDashboard() {
           <BlockStack gap="300">
             <Text variant="headingSm" as="h2">Assign Plan to Any Store (Even If Not Listed)</Text>
             <Text variant="bodySm" tone="subdued">
-              You can manually pre-assign a Lifetime or Monthly plan to any test store or client by entering their myshopify domain.
+              You can pre-assign Lifetime or Monthly Pro to any store domain before or after install.
             </Text>
             <InlineStack gap="300" blockAlign="end">
               <Box minWidth="300px">
@@ -589,12 +468,10 @@ export default function AdminDashboard() {
                 resourceName={{ singular: "store", plural: "stores" }}
                 itemCount={stores.length}
                 headings={[
-                  { title: "Store Name / Domain" },
-                  { title: "Shopify Plan" },
-                  { title: "Current App Plan" },
+                  { title: "Store Domain" },
+                  { title: "Our Plan Details" },
                   { title: "Reels" },
                   { title: "Views (This Mo)" },
-                  { title: "Installed Date" },
                   { title: "Manual Plan Override" },
                   { title: "Actions" },
                 ]}
