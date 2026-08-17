@@ -73,13 +73,13 @@
     assign is_pro_active  = true
   endif
 
-  assign badge_label      = 'Verified'
-  if is_pro_active and block.settings.custom_badge_text != blank
-    assign badge_label    = block.settings.custom_badge_text
+  assign is_suspended = false
+  if is_limit_reached or is_blocked
+    assign is_suspended = true
   endif
 -%}
 
-{%- if (is_limit_reached or is_blocked) and request.design_mode == false -%}
+{%- if is_suspended and request.design_mode == false -%}
   {%- comment -%} Free tier monthly limit reached or account suspended - Section cleanly pauses on live storefront {%- endcomment -%}
 {%- else -%}
 
