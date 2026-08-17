@@ -75,3 +75,10 @@ model Feedback {
   message   String
   createdAt DateTime @default(now())
 }
+
+model StorePlanOverride {
+  shop      String   @id
+  plan      String   // "FREE", "MONTHLY", "LIFETIME"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

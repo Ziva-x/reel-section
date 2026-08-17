@@ -19,27 +19,37 @@ import {
 import { authenticate } from "../shopify.server";
 import { LIFETIME_PLAN, MONTHLY_PLAN } from "../constants";
 import { syncTestimonialsToMetafields } from "../metafields.server";
+import prisma from "../db.server";
 import { useState, useCallback, useEffect } from "react";
 
 export const loader = async ({ request }) => {
-  const { admin, billing } = await authenticate.admin(request);
+  const { session, admin, billing } = await authenticate.admin(request);
 
   let hasBillingPayment = false;
   let billingPlanName = null;
 
-  try {
-    const billingCheck = await billing.check({
-      plans: [LIFETIME_PLAN, MONTHLY_PLAN],
-      isTest: true,
-    });
-    hasBillingPayment = !!billingCheck.hasActivePayment;
-    billingPlanName = billingCheck.appSubscriptions?.length > 0
-      ? billingCheck.appSubscriptions[0].name
-      : billingCheck.oneTimePurchases?.length > 0
-      ? billingCheck.oneTimePurchases[0].name
-      : null;
-  } catch (e) {
-    console.warn("Billing check note:", e.message);
+  const manualOverride = await prisma.storePlanOverride.findUnique({
+    where: { shop: session.shop },
+  });
+
+  if (manualOverride) {
+    hasBillingPayment = true;
+    billingPlanName = manualOverride.plan;
+  } else {
+    try {
+      const billingCheck = await billing.check({
+        plans: [LIFETIME_PLAN, MONTHLY_PLAN],
+        isTest: true,
+      });
+      hasBillingPayment = !!billingCheck.hasActivePayment;
+      billingPlanName = billingCheck.appSubscriptions?.length > 0
+        ? billingCheck.appSubscriptions[0].name
+        : billingCheck.oneTimePurchases?.length > 0
+        ? billingCheck.oneTimePurchases[0].name
+        : null;
+    } catch (e) {
+      console.warn("Billing check note:", e.message);
+    }
   }
 
   // Also read stored metafield plan status
@@ -84,14 +94,21 @@ export const action = async ({ request }) => {
   // Force re-sync billing status to Shopify metafields
   if (plan === "force_sync") {
     let hasPaidPlan = false;
-    try {
-      const billingCheck = await billing.check({
-        plans: [LIFETIME_PLAN, MONTHLY_PLAN],
-        isTest: true,
-      });
-      hasPaidPlan = !!billingCheck.hasActivePayment;
-    } catch (e) {
-      hasPaidPlan = false;
+    const manualOverride = await prisma.storePlanOverride.findUnique({
+      where: { shop: session.shop },
+    });
+    if (manualOverride) {
+      hasPaidPlan = true;
+    } else {
+      try {
+        const billingCheck = await billing.check({
+          plans: [LIFETIME_PLAN, MONTHLY_PLAN],
+          isTest: true,
+        });
+        hasPaidPlan = !!billingCheck.hasActivePayment;
+      } catch (e) {
+        hasPaidPlan = false;
+      }
     }
     const planName = hasPaidPlan ? "Monthly Pro" : "Free Starter";
     await syncTestimonialsToMetafields(admin, session.shop, hasPaidPlan, planName);

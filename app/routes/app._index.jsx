@@ -79,19 +79,29 @@ export const loader = async ({ request }) => {
 
   let hasPaidPlan = false;
   let activePlanName = null;
-  try {
-    const billingCheck = await billing.check({
-      plans: [LIFETIME_PLAN, MONTHLY_PLAN],
-      isTest: true,
-    });
-    hasPaidPlan = !!billingCheck.hasActivePayment;
-    activePlanName = billingCheck.appSubscriptions?.length > 0 
-      ? billingCheck.appSubscriptions[0].name 
-      : billingCheck.oneTimePurchases?.length > 0 
-      ? billingCheck.oneTimePurchases[0].name 
-      : null;
-  } catch (e) {
-    hasPaidPlan = false;
+
+  const manualOverride = await prisma.storePlanOverride.findUnique({
+    where: { shop: session.shop },
+  });
+
+  if (manualOverride) {
+    hasPaidPlan = true;
+    activePlanName = manualOverride.plan;
+  } else {
+    try {
+      const billingCheck = await billing.check({
+        plans: [LIFETIME_PLAN, MONTHLY_PLAN],
+        isTest: true,
+      });
+      hasPaidPlan = !!billingCheck.hasActivePayment;
+      activePlanName = billingCheck.appSubscriptions?.length > 0 
+        ? billingCheck.appSubscriptions[0].name 
+        : billingCheck.oneTimePurchases?.length > 0 
+        ? billingCheck.oneTimePurchases[0].name 
+        : null;
+    } catch (e) {
+      hasPaidPlan = false;
+    }
   }
 
   // Background sync testimonials to Shop Metafields so storefront is guaranteed in sync
@@ -175,14 +185,23 @@ export const action = async ({ request }) => {
   }
 
   let hasPaidPlan = false;
-  try {
-    const billingCheck = await billing.check({
-      plans: [LIFETIME_PLAN, MONTHLY_PLAN],
-      isTest: true,
-    });
-    hasPaidPlan = !!billingCheck.hasActivePayment;
-  } catch (e) {
-    hasPaidPlan = false;
+  
+  const manualOverride = await prisma.storePlanOverride.findUnique({
+    where: { shop: session.shop },
+  });
+
+  if (manualOverride) {
+    hasPaidPlan = true;
+  } else {
+    try {
+      const billingCheck = await billing.check({
+        plans: [LIFETIME_PLAN, MONTHLY_PLAN],
+        isTest: true,
+      });
+      hasPaidPlan = !!billingCheck.hasActivePayment;
+    } catch (e) {
+      hasPaidPlan = false;
+    }
   }
 
   await syncTestimonialsToMetafields(admin, session.shop, hasPaidPlan, null, actionType === "delete");
