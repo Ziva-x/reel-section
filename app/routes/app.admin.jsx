@@ -11,7 +11,7 @@ import {
   BlockStack
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
-import { authenticate, unauthenticated } from "../shopify.server";
+import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { syncTestimonialsToMetafields } from "../metafields.server";
 
@@ -24,46 +24,81 @@ export const loader = async ({ request }) => {
     return json({ isUnauthorized: true, stores: [] });
   }
 
-  // 1. Get all unique installed shops from Session table
-  const sessions = await prisma.session.findMany({
-    where: { isOnline: false }, // usually offline sessions are the long-lived ones
+  // 1. Get all sessions and deduplicate by shop
+  //    Prefer offline sessions (they have the long-lived accessToken)
+  const allSessions = await prisma.session.findMany({
+    orderBy: { shop: "asc" },
   });
+
+  // Deduplicate: prefer offline session per shop, fallback to any
+  const shopMap = {};
+  for (const sess of allSessions) {
+    if (!shopMap[sess.shop]) {
+      shopMap[sess.shop] = sess;
+    } else if (!sess.isOnline) {
+      // Prefer offline session (has the app-level access token)
+      shopMap[sess.shop] = sess;
+    }
+  }
+  const uniqueSessions = Object.values(shopMap);
 
   // 2. Get all manual overrides
   const overrides = await prisma.storePlanOverride.findMany();
   const overrideMap = {};
   overrides.forEach(o => {
-    overrideMap[o.shop] = o.plan;
+    overrideMap[o.shop] = { plan: o.plan, createdAt: o.createdAt };
   });
 
-  // 3. Fetch appInstallation date for each shop using unauthenticated admin API
+  // 3. For each shop, use the accessToken to query Shopify GraphQL directly
+  const SHOPIFY_API_VERSION = process.env.SHOPIFY_API_VERSION || "2025-01";
+
   const stores = await Promise.all(
-    sessions.map(async (sess) => {
-      let installedAt = "Unknown";
+    uniqueSessions.map(async (sess) => {
+      let installedAt = null;
+      let ownerName = null;
+      let ownerEmail = null;
+      let shopName = null;
+
       try {
-        const { admin } = await unauthenticated.admin(sess.shop);
-        const response = await admin.graphql(`
-          query {
-            appInstallation {
-              createdAt
-            }
+        const gqlResponse = await fetch(
+          `https://${sess.shop}/admin/api/${SHOPIFY_API_VERSION}/graphql.json`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Shopify-Access-Token": sess.accessToken,
+            },
+            body: JSON.stringify({
+              query: `{
+                shop {
+                  name
+                  email
+                  myshopifyDomain
+                  plan { displayName }
+                }
+                appInstallation {
+                  createdAt
+                }
+              }`,
+            }),
           }
-        `);
-        const data = await response.json();
-        installedAt = data.data?.appInstallation?.createdAt || "Unknown";
+        );
+        const gqlData = await gqlResponse.json();
+        const shopData = gqlData.data?.shop;
+        installedAt = gqlData.data?.appInstallation?.createdAt || null;
+        shopName = shopData?.name || null;
+        ownerEmail = shopData?.email || null;
       } catch (e) {
-        // If the unauthenticated request fails (e.g., app was uninstalled but session remains)
-        installedAt = "Uninstalled/Error";
+        console.warn(`Could not fetch Shopify data for ${sess.shop}:`, e.message);
       }
 
       return {
         id: sess.shop,
         shop: sess.shop,
-        firstName: sess.firstName || "",
-        lastName: sess.lastName || "",
-        email: sess.email || "N/A",
+        shopName: shopName || sess.shop,
+        ownerEmail: ownerEmail || sess.email || "N/A",
         installedAt,
-        manualPlan: overrideMap[sess.shop] || "NONE",
+        manualPlan: overrideMap[sess.shop]?.plan || "NONE",
       };
     })
   );
@@ -102,10 +137,18 @@ export const action = async ({ request }) => {
       planName = plan;
     }
 
-    // Attempt to sync immediately via unauthenticated API
+    // Attempt to sync immediately using the stored access token
     try {
-      const { admin } = await unauthenticated.admin(targetShop);
-      await syncTestimonialsToMetafields(admin, targetShop, hasPaidPlan, planName);
+      const targetSession = await prisma.session.findFirst({
+        where: { shop: targetShop, isOnline: false },
+      });
+      if (targetSession) {
+        const { admin } = await authenticate.admin(request);
+        // Use the current admin session if same shop, otherwise skip sync (will sync on next page load)
+        if (targetShop === session.shop) {
+          await syncTestimonialsToMetafields(admin, targetShop, hasPaidPlan, planName);
+        }
+      }
     } catch (e) {
       console.warn("Could not sync to metafields for", targetShop, e);
     }
@@ -146,25 +189,25 @@ export default function AdminDashboard() {
   };
 
   const rowMarkup = stores.map(
-    ({ id, shop, firstName, lastName, email, installedAt, manualPlan }, index) => {
-      const name = [firstName, lastName].filter(Boolean).join(" ") || "Unknown";
-      
-      const dateDisplay = installedAt !== "Unknown" && installedAt !== "Uninstalled/Error"
-        ? new Date(installedAt).toLocaleDateString()
-        : installedAt;
+    ({ id, shop, shopName, ownerEmail, installedAt, manualPlan }, index) => {
+      const dateDisplay = installedAt
+        ? new Date(installedAt).toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" })
+        : "Unknown";
 
       return (
         <IndexTable.Row id={id} key={id} position={index}>
           <IndexTable.Cell>
-            <Text variant="bodyMd" fontWeight="bold" as="span">
-              {shop}
-            </Text>
+            <BlockStack gap="050">
+              <Text variant="bodyMd" fontWeight="bold" as="span">
+                {shopName}
+              </Text>
+              <Text tone="subdued" variant="bodySm" as="span">
+                {shop}
+              </Text>
+            </BlockStack>
           </IndexTable.Cell>
           <IndexTable.Cell>
-            <BlockStack gap="100">
-              <Text as="span">{name}</Text>
-              <Text tone="subdued" as="span">{email}</Text>
-            </BlockStack>
+            <Text as="span">{ownerEmail}</Text>
           </IndexTable.Cell>
           <IndexTable.Cell>
             {dateDisplay}
@@ -200,8 +243,8 @@ export default function AdminDashboard() {
                 resourceName={{ singular: "store", plural: "stores" }}
                 itemCount={stores.length}
                 headings={[
-                  { title: "Shop Domain" },
-                  { title: "Merchant Info" },
+                  { title: "Store Name / Domain" },
+                  { title: "Owner Email" },
                   { title: "Installed Date" },
                   { title: "Manual Plan Override" },
                 ]}
