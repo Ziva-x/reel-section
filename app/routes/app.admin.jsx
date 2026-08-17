@@ -18,7 +18,7 @@ import {
   Divider,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
-import { authenticate } from "../shopify.server";
+import { authenticate, unauthenticated } from "../shopify.server";
 import prisma from "../db.server";
 import { syncTestimonialsToMetafields } from "../metafields.server";
 import { useState, useCallback } from "react";
@@ -102,7 +102,6 @@ export const loader = async ({ request }) => {
       let installedAt = null;
       let shopifyPlan = "Standard";
 
-      // If it's the currently authenticated session, we can use the admin GraphQL client directly!
       if (shopDomain === session.shop) {
         try {
           const res = await admin.graphql(`
@@ -124,17 +123,14 @@ export const loader = async ({ request }) => {
         } catch (e) {
           console.warn("[Admin] Current shop GraphQL note:", e.message);
         }
-      } else if (sess?.accessToken) {
-        // For other stores with stored access token
+      } else {
+        // Try unauthenticated admin client first
+        let fetchedOk = false;
         try {
-          const res = await fetch(`https://${shopDomain}/admin/api/${SHOPIFY_API_VERSION}/graphql.json`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-Shopify-Access-Token": sess.accessToken,
-            },
-            body: JSON.stringify({
-              query: `{
+          const unauth = await unauthenticated.admin(shopDomain);
+          if (unauth?.admin) {
+            const res = await unauth.admin.graphql(`
+              query {
                 shop {
                   name
                   plan { displayName }
@@ -142,15 +138,44 @@ export const loader = async ({ request }) => {
                 appInstallation {
                   createdAt
                 }
-              }`,
-            }),
-          });
-          const data = await res.json();
-          if (data.data?.shop?.name) shopName = data.data.shop.name;
-          if (data.data?.shop?.plan?.displayName) shopifyPlan = data.data.shop.plan.displayName;
-          if (data.data?.appInstallation?.createdAt) installedAt = data.data.appInstallation.createdAt;
-        } catch (e) {
-          console.warn(`[Admin] Fetch note for ${shopDomain}:`, e.message);
+              }
+            `);
+            const data = await res.json();
+            if (data.data?.shop?.name) {
+              shopName = data.data.shop.name;
+              fetchedOk = true;
+            }
+            if (data.data?.shop?.plan?.displayName) shopifyPlan = data.data.shop.plan.displayName;
+            if (data.data?.appInstallation?.createdAt) installedAt = data.data.appInstallation.createdAt;
+          }
+        } catch (unauthErr) {}
+
+        // Fallback to fetch with sess.accessToken if available
+        if (!fetchedOk && sess?.accessToken) {
+          try {
+            const res = await fetch(`https://${shopDomain}/admin/api/${SHOPIFY_API_VERSION}/graphql.json`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-Shopify-Access-Token": sess.accessToken,
+              },
+              body: JSON.stringify({
+                query: `{
+                  shop {
+                    name
+                    plan { displayName }
+                  }
+                  appInstallation {
+                    createdAt
+                  }
+                }`,
+              }),
+            });
+            const data = await res.json();
+            if (data.data?.shop?.name) shopName = data.data.shop.name;
+            if (data.data?.shop?.plan?.displayName) shopifyPlan = data.data.shop.plan.displayName;
+            if (data.data?.appInstallation?.createdAt) installedAt = data.data.appInstallation.createdAt;
+          } catch (e) {}
         }
       }
 
