@@ -410,6 +410,20 @@ export default function AdminDashboard() {
           </IndexTable.Cell>
 
           <IndexTable.Cell>
+            {isBlocked ? (
+              <Badge tone="critical">🚫 Suspended</Badge>
+            ) : manualPlan === "LIFETIME" ? (
+              <Badge tone="success">⭐ Lifetime Access</Badge>
+            ) : manualPlan === "MONTHLY" ? (
+              <Badge tone="success">✨ Monthly Pro</Badge>
+            ) : manualPlan === "FREE" ? (
+              <Badge tone="info">Free Starter (Manual)</Badge>
+            ) : (
+              <Badge tone="info">Free Starter</Badge>
+            )}
+          </IndexTable.Cell>
+
+          <IndexTable.Cell>
             <Text as="span">{testimonialCount} reels</Text>
           </IndexTable.Cell>
 
@@ -577,6 +591,7 @@ export default function AdminDashboard() {
                 headings={[
                   { title: "Store Name / Domain" },
                   { title: "Shopify Plan" },
+                  { title: "Current App Plan" },
                   { title: "Reels" },
                   { title: "Views (This Mo)" },
                   { title: "Installed Date" },

@@ -25,25 +25,77 @@ import { syncTestimonialsToMetafields } from "../metafields.server";
 
 export const loader = async ({ request }) => {
   const { session, billing } = await authenticate.admin(request);
-  let hasPaidPlan = false;
-  try {
-    const billingCheck = await billing.check({
-      plans: [LIFETIME_PLAN, MONTHLY_PLAN],
-      isTest: true,
-    });
-    hasPaidPlan = !!billingCheck.hasActivePayment;
-  } catch (e) {
-    hasPaidPlan = false;
-  }
-
-  // Check if store is blocked
+  
+  // 1. Check if store is blocked
   const blockedEntry = await prisma.blockedStore.findUnique({
     where: { shop: session.shop },
   });
 
+  // 2. Check manual override
+  const manualOverride = await prisma.storePlanOverride.findUnique({
+    where: { shop: session.shop },
+  });
+
+  let hasPaidPlan = false;
+  let activePlanName = "Free Starter";
+  let planType = "free";
+
+  if (blockedEntry) {
+    activePlanName = "Account Suspended";
+    planType = "blocked";
+    hasPaidPlan = false;
+  } else if (manualOverride) {
+    if (manualOverride.plan === "LIFETIME") {
+      activePlanName = "Lifetime Access ($10)";
+      planType = "lifetime";
+      hasPaidPlan = true;
+    } else if (manualOverride.plan === "MONTHLY") {
+      activePlanName = "Monthly Pro ($2/mo)";
+      planType = "monthly";
+      hasPaidPlan = true;
+    } else {
+      activePlanName = "Free Starter";
+      planType = "free";
+      hasPaidPlan = false;
+    }
+  } else {
+    try {
+      const billingCheck = await billing.check({
+        plans: [LIFETIME_PLAN, MONTHLY_PLAN],
+        isTest: true,
+      });
+      hasPaidPlan = !!billingCheck.hasActivePayment;
+      if (hasPaidPlan) {
+        activePlanName = billingCheck.appSubscriptions?.length > 0
+          ? billingCheck.appSubscriptions[0].name
+          : billingCheck.oneTimePurchases?.length > 0
+          ? billingCheck.oneTimePurchases[0].name
+          : "Pro Active";
+        planType = "paid";
+      }
+    } catch (e) {
+      hasPaidPlan = false;
+    }
+  }
+
+  // Monthly view counts
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+  const viewsThisMonth = await prisma.viewCount.aggregate({
+    where: { shop: session.shop, date: { gte: monthStart, lte: monthEnd } },
+    _sum: { count: true },
+  });
+  const monthlyViews = viewsThisMonth._sum.count || 0;
+
   return json({
     shop: session.shop,
     hasPaidPlan,
+    activePlanName,
+    planType,
+    monthlyViews,
+    monthlyLimit: 1000,
     isBlocked: !!blockedEntry,
     blockReason: blockedEntry?.reason || "",
   });
@@ -92,7 +144,7 @@ export const action = async ({ request }) => {
 };
 
 export default function Settings() {
-  const { shop, hasPaidPlan, isBlocked, blockReason } = useLoaderData();
+  const { shop, hasPaidPlan, activePlanName, planType, monthlyViews, monthlyLimit, isBlocked, blockReason } = useLoaderData();
   const actionData = useActionData();
   const submit = useSubmit();
   const navigate = useNavigate();
@@ -129,6 +181,8 @@ export default function Settings() {
     submit({ _action: "sync_pro" }, { method: "post" });
   };
 
+  const planTone = isBlocked ? "critical" : hasPaidPlan ? "success" : "info";
+
   return (
     <Page
       title="Settings & Support"
@@ -161,9 +215,43 @@ export default function Settings() {
       )}
 
       <Layout>
-        {/* Left Column: Feedback, Developer Details, Manage App */}
+        {/* Left Column: Plan Info, Feedback, Developer Details, Manage App */}
         <Layout.Section>
           <BlockStack gap="500">
+            {/* Current Subscription Plan Card */}
+            <Card>
+              <BlockStack gap="400">
+                <InlineStack align="space-between" blockAlign="center">
+                  <Text variant="headingMd" as="h3">💳 Current Subscription Plan</Text>
+                  <Badge tone={planTone}>{activePlanName}</Badge>
+                </InlineStack>
+                
+                <Text variant="bodyMd" tone="subdued">
+                  {isBlocked
+                    ? "Your plan is temporarily suspended. Reach out to support below for assistance."
+                    : hasPaidPlan
+                    ? "You have full access to Unlimited Video Views, Click-to-Shop Buy Tags, and Pro Customizations."
+                    : "You are on the Free Starter tier with 1,000 free video views per calendar month."}
+                </Text>
+
+                <Divider />
+
+                <InlineStack align="space-between" blockAlign="center">
+                  <BlockStack gap="050">
+                    <Text variant="bodySm" fontWeight="semibold">Monthly Video Impressions</Text>
+                    <Text variant="bodySm" tone="subdued">
+                      {hasPaidPlan ? "Unlimited (No Caps)" : `${monthlyViews.toLocaleString()} / 1,000 views used this month`}
+                    </Text>
+                  </BlockStack>
+                  {!isBlocked && (
+                    <Button onClick={() => navigate("/app/pricing")}>
+                      {hasPaidPlan ? "Manage Plans" : "Upgrade to Pro"}
+                    </Button>
+                  )}
+                </InlineStack>
+              </BlockStack>
+            </Card>
+
             {/* Feedback & Review Card */}
             <Card>
               <BlockStack gap="400">
