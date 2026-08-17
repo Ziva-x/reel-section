@@ -35,7 +35,18 @@ export const loader = async ({ request }) => {
   } catch (e) {
     hasPaidPlan = false;
   }
-  return json({ shop: session.shop, hasPaidPlan });
+
+  // Check if store is blocked
+  const blockedEntry = await prisma.blockedStore.findUnique({
+    where: { shop: session.shop },
+  });
+
+  return json({
+    shop: session.shop,
+    hasPaidPlan,
+    isBlocked: !!blockedEntry,
+    blockReason: blockedEntry?.reason || "",
+  });
 };
 
 export const action = async ({ request }) => {
@@ -81,7 +92,7 @@ export const action = async ({ request }) => {
 };
 
 export default function Settings() {
-  const { shop, hasPaidPlan } = useLoaderData();
+  const { shop, hasPaidPlan, isBlocked, blockReason } = useLoaderData();
   const actionData = useActionData();
   const submit = useSubmit();
   const navigate = useNavigate();
@@ -123,6 +134,24 @@ export default function Settings() {
       title="Settings & Support"
       subtitle="Manage your store preferences, feedback, and customer support channels."
     >
+      {isBlocked && (
+        <div style={{ marginBottom: "20px" }}>
+          <Banner title="🚫 Account Access Suspended" tone="critical">
+            <p>
+              Your access to video testimonials and analytics features has been suspended by the administrator.
+            </p>
+            {blockReason && (
+              <p style={{ marginTop: "6px" }}>
+                <strong>Reason:</strong> {blockReason}
+              </p>
+            )}
+            <p style={{ marginTop: "6px" }}>
+              You can still use the support & feedback form below to reach our team and request account reactivation.
+            </p>
+          </Banner>
+        </div>
+      )}
+
       {actionData?.message && (
         <div style={{ marginBottom: "20px" }}>
           <Banner title="Success" tone="success" onDismiss={() => {}}>
