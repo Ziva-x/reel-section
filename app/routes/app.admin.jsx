@@ -1,4 +1,4 @@
-import { json, redirect } from "@remix-run/node";
+import { json } from "@remix-run/node";
 import { useLoaderData, useSubmit, useNavigation } from "@remix-run/react";
 import {
   Page,
@@ -21,7 +21,7 @@ export const loader = async ({ request }) => {
   // Security Check
   const adminShop = process.env.ADMIN_SHOP;
   if (!adminShop || session.shop !== adminShop) {
-    return redirect("/app");
+    return json({ isUnauthorized: true, stores: [] });
   }
 
   // 1. Get all unique installed shops from Session table
@@ -115,11 +115,27 @@ export const action = async ({ request }) => {
 };
 
 export default function AdminDashboard() {
-  const { stores } = useLoaderData();
+  const { stores, isUnauthorized } = useLoaderData();
   const submit = useSubmit();
   const nav = useNavigation();
 
   const isUpdating = nav.state !== "idle";
+
+  if (isUnauthorized) {
+    return (
+      <Page>
+        <TitleBar title="Access Denied" />
+        <div style={{ textAlign: "center", padding: "80px 20px" }}>
+          <div style={{ fontSize: "48px", marginBottom: "16px" }}>🔒</div>
+          <Text variant="headingXl" as="h1">Access Denied</Text>
+          <div style={{ marginTop: "12px" }}>
+            <Text tone="subdued" as="p">This page is restricted to super admins only.</Text>
+            <Text tone="subdued" as="p">Set the ADMIN_SHOP environment variable on Render to grant access.</Text>
+          </div>
+        </div>
+      </Page>
+    );
+  }
 
   const handlePlanChange = (shop, newPlan) => {
     const formData = new FormData();
